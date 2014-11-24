@@ -5,7 +5,19 @@ import numpy as np
 from info_imagen import distancia
 
 def deproyectar(x,y,NAXIS1,NAXIS2,borde,matriz,radio):
+    """
+    calcula y transforma la elipse a su proyeccion correspondiente en un circulo
 
+    args:
+        - x, y = coordenadas (?)
+        - NAXIS1, NAXIS2 = dimensiones de la matriz
+        - borde: vector de borde de la elipse
+        - matriz: imagen de estudio
+        - radio: radio desde el centro de la elipse a x,y
+
+    return:
+        - imagen deproyectada.
+    """
     matriz_final = np.zeros(((y+(math.cos(90*math.pi/180))*radio)*2+2,radio*2+2))
 
     for i in range(NAXIS1):

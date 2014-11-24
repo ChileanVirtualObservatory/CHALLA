@@ -1,10 +1,24 @@
-#!/usr/bin/python
+    #!/usr/bin/python
 
 import numpy as np
 import math
 import info_imagen
 
 def escalar(matriz, NAXIS1, NAXIS2, razon):
+    """
+    escala una matriz en una razon dada (agrandar o achicar)
+
+    args:
+        - matriz: imagen del objeto
+        - NAXIS1, NAXIS2: dimensiones 
+        - razon: factor de escala
+
+    return:
+        - imagen escalada
+
+    cambios:
+        - interpolacion puede ser reemplazada por metodo de splines, o alguna interpolacion mas confiable
+    """
     
     # ------- S I  R A Z O N  E S   1  N O   S E   E S C A L A --------
     if (razon == 1):

@@ -5,6 +5,22 @@ import math
 import info_imagen
 
 def rotar(matriz, NAXIS1, NAXIS2, angulo):
+    """
+    rota el objeto de estudio (matriz), en un angulo determinado, por medio de una matriz de rotacion
+
+    args:
+        - matriz: imagen del objeto
+        - NAXIS1: dimension 1 de la matriz
+        - NAXIS2: dimension 2 de la matriz
+        - angulo: angulo de rotacion
+
+    return:
+        - matriz rotada
+
+    cambios: 
+        - rotacion 270: transpose()
+
+    """
     if (angulo > 360 or angulo < 1):
         print "<Error: Imagen no rotada, angulo no permitido>"
         return matriz

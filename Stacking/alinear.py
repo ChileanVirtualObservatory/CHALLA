@@ -3,6 +3,18 @@
 import numpy as np
 
 def alinear(x1,y1,x2,y2,dim_1_x,dim_1_y,dim_2_x,dim_2_y, actual): # 1: Referencia 2: Pos. de la imagen actual
+    """
+    desplaza el objeto de estudio a un punto de referencia comun
+
+    args:
+        - x1,y1,x2,y2: coordenadas antes-despues
+        - dim_1_x,dim_1_y,dim_2_x,dim_2_y: dimensiones de la matriz, antes y antes-despues
+        - actual: matriz de la imagen a alinear
+
+    return:
+        - matriz desplazada
+        
+    """
     diferencia_x = x1 - x2
     diferencia_y = y1 - y2
 

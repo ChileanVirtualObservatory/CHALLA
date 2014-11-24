@@ -3,6 +3,20 @@
 import numpy as np
 
 def recortar(matriz, borde):
+    """
+    extrae de la imagen el objeto a estudiar
+
+    Args: 
+        - matriz: imagen completa
+        - borde: frontera del objeto de estudio
+
+    return: 
+        - matriz solo con el objeto de estudio
+
+    cambios: 
+        - ingreso de la matriz por input de archivo fits (astropy.io)
+        - Borde. 
+    """
     fila_mayor = 0
     fila_menor = borde[0]
     columna_mayor = 0

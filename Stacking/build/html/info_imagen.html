@@ -1,0 +1,219 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Modulo info_imagen.py &mdash; Stacking 1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Stacking 1.0 documentation" href="index.html" />
+    <link rel="next" title="Modulo recortar.py" href="recortar.html" />
+    <link rel="prev" title="Welcome to Stacking’s documentation!" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="recortar.html" title="Modulo recortar.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Stacking’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Stacking 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="modulo-info-imagen-py">
+<h1>Modulo info_imagen.py<a class="headerlink" href="#modulo-info-imagen-py" title="Permalink to this headline">¶</a></h1>
+<p>Documentación de código para el algoritmo de stacking.</p>
+<p>Contenido:</p>
+<div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+<span class="target" id="module-info_imagen"></span><dl class="function">
+<dt id="info_imagen.angulo_a_rotar">
+<tt class="descclassname">info_imagen.</tt><tt class="descname">angulo_a_rotar</tt><big>(</big><em>x1</em>, <em>y1</em>, <em>x2</em>, <em>y2</em><big>)</big><a class="headerlink" href="#info_imagen.angulo_a_rotar" title="Permalink to this definition">¶</a></dt>
+<dd><p>calcula el angulo para que al rotar el eje mayor, este quede paralelo al eje x</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last simple">
+<li>x1: coordenada x del primer punto del eje mayor</li>
+<li>y1: coordenada y del primer punto del eje mayor</li>
+<li>x2: coordenada x del segundo punto del eje mayor</li>
+<li>y2: coordenada y del segundo punto del eje mayor</li>
+</ul>
+</dd>
+<dt>return: </dt>
+<dd><ul class="first last simple">
+<li>angulo encontrado</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="info_imagen.centro_geometrico">
+<tt class="descclassname">info_imagen.</tt><tt class="descname">centro_geometrico</tt><big>(</big><em>dis</em>, <em>x1</em>, <em>y1</em>, <em>x2</em>, <em>y2</em>, <em>angulo</em><big>)</big><a class="headerlink" href="#info_imagen.centro_geometrico" title="Permalink to this definition">¶</a></dt>
+<dd><p>calcula el centro geometrico de la elipse</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last simple">
+<li>dis: longitud del eje mayor</li>
+<li>x1,y1,x2,y2: coordenadas de los puntos extremos del eje mayor</li>
+<li>angulo: angulo de inclinacion (DUDAAAAAA)</li>
+</ul>
+</dd>
+<dt>return: </dt>
+<dd><ul class="first last simple">
+<li>punto_central = [x,y]</li>
+<li>punto de ubicacion del eje geometrico (x,y)</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="info_imagen.distancia">
+<tt class="descclassname">info_imagen.</tt><tt class="descname">distancia</tt><big>(</big><em>x1</em>, <em>y1</em>, <em>x2</em>, <em>y2</em><big>)</big><a class="headerlink" href="#info_imagen.distancia" title="Permalink to this definition">¶</a></dt>
+<dd><p>mide la distancia entre 2 puntos utilizando teorema de pitagoras</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last simple">
+<li>x1: coordenada x del primer punto</li>
+<li>y1: coordenada y del primer punto</li>
+<li>x2: coordenada x del segundo punto</li>
+<li>y2: coordenada y del segundo punto</li>
+</ul>
+</dd>
+<dt>return: </dt>
+<dd><ul class="first last simple">
+<li>valor de la distancia calculada</li>
+</ul>
+</dd>
+<dt>cambios: </dt>
+<dd><ul class="first last simple">
+<li>utilizar astropy.units para mejor representacion del dato</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="info_imagen.eje_mayor">
+<tt class="descclassname">info_imagen.</tt><tt class="descname">eje_mayor</tt><big>(</big><em>borde</em><big>)</big><a class="headerlink" href="#info_imagen.eje_mayor" title="Permalink to this definition">¶</a></dt>
+<dd><p>encuentra los puntos separados a una mayor distancia en el borde de la elipse (eje mayor)</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><ul class="first last simple">
+<li>borde: puntos correspondientes al borde de la elipse</li>
+</ul>
+</dd>
+<dt>return: </dt>
+<dd><ul class="first last simple">
+<li>info_elipse = [Dimension,x1,y1,x2,y2] == arreglo con el valor numerico del eje mayor y los puntos extremos de este eje</li>
+</ul>
+</dd>
+<dt>cambios: </dt>
+<dd><ul class="first simple">
+<li>astropy.units</li>
+<li>dato utilizado para representar &#8220;borde&#8221;</li>
+<li>if ( j % 2 != 0):</li>
+</ul>
+<p>continue</p>
+<ul class="last simple">
+<li>Lineas sin sentido: si sumas 2 a i, el modulo 2 seguira siendo igual o distinto de 0</li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to Stacking&#8217;s documentation!</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="recortar.html"
+                        title="next chapter">Modulo recortar.py</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/info_imagen.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="recortar.html" title="Modulo recortar.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Stacking’s documentation!"
+             >previous</a> |</li>
+        <li><a href="index.html">Stacking 1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, Axel Simonsen.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
