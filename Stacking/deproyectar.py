@@ -81,4 +81,4 @@ def deproyectar(x,y,NAXIS1,NAXIS2,borde,matriz,radio):
             matriz_final[math.ceil(fil),int(col)] = matriz[i][j]
             matriz_final[math.ceil(fil),math.ceil(col)] = matriz[i][j]
 
-    return matriz_final
+    return NDData(matriz_final)

@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import math
+from astropy.nddata import NDData
+import numpy as np
 
 def distancia(x1,y1,x2,y2):
     """
@@ -86,31 +88,29 @@ def eje_mayor(borde):
     
         - Lineas sin sentido: si sumas 2 a i, el modulo 2 seguira siendo igual o distinto de 0
     """
-     
-    info_elipse = [0,0,0,0,0]
+    borde = NDData(borde) 
+    info_elipse = np.zeros((4,))
+    info_elipse = NDData(info_elipse)
+    info_elipse.meta['distance'] = 0
 
-    for i in range (0, len(borde)-2):
+    for i in range (0, len(borde.data)-2):
         if ( i % 2 != 0):
             continue
-        print "i= ", i
-        for j in range (i+2, len(borde)-1):
+        for j in range (i+2, len(borde.data)-1):
             if ( j % 2 != 0):
                 continue
-            print "j= ",j
-            dis = distancia(borde[i],borde[i+1],borde[j],borde[j+1])
-            if dis > info_elipse[0]:
-                info_elipse[0] = dis          # Distancia del eje mayor
-                info_elipse[1] = borde[i]     # (X1,
-                info_elipse[2] = borde[i+1]   #  Y1) Eje mayor
-                info_elipse[3] = borde[j]     # (X2,
-                info_elipse[4] = borde[j+1]   #  Y2) Eje mayor
-
+            dis = distancia(borde.data[i],borde.data[i+1],borde.data[j],borde.data[j+1])
+            if dis > info_elipse.meta['distance']:
+                info_elipse.meta['distance'] = dis          # Distancia del eje mayor
+                info_elipse.data[0] = borde.data[i]     # (X1,
+                info_elipse.data[1] = borde.data[i+1]   #  Y1) Eje mayor
+                info_elipse.data[2] = borde.data[j]     # (X2,
+                info_elipse.data[3] = borde.data[j+1]   #  Y2) Eje mayor
     return info_elipse
 
 if __name__ == "__main__":
     vec = [0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
     info = eje_mayor(vec)
-    print info
 
 
 

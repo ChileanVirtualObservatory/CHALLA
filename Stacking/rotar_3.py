@@ -2,6 +2,7 @@
 
 import numpy as np
 import math
+from astropy.nddata import NDData
 import info_imagen
 
 def rotar(matriz, NAXIS1, NAXIS2, angulo):
@@ -23,10 +24,10 @@ def rotar(matriz, NAXIS1, NAXIS2, angulo):
     """
     if (angulo > 360 or angulo < 1):
         print "<Error: Imagen no rotada, angulo no permitido>"
-        return matriz
+        return NDData(matriz)
     # ------ PARA 0 NO ES NECESARIO ROTAR    ------ #
     if (angulo == 0 or angulo ==360):
-        return matriz
+        return NDData(matriz)
     
     # ------ PARA 90, 180 y 270 ES UNA SIMPLE TRASLACION DE PUNTOS ------ #
     
@@ -35,21 +36,21 @@ def rotar(matriz, NAXIS1, NAXIS2, angulo):
         for i in range(NAXIS1):
             for j in range(NAXIS2):
                 matriz_final[NAXIS2 - j -1][i] = matriz[i][j]
-        return matriz_final
+        return NDData(matriz_final)
 
     if (angulo == 180):
         matriz_final = np.zeros((NAXIS1,NAXIS2))
         for i in range(NAXIS1):
             for j in range(NAXIS2):
                 matriz_final[NAXIS1 - i - 1][NAXIS2 - j -1] = matriz[i][j]
-        return matriz_final
+        return NDData(matriz_final)
 
     if (angulo == 270):
         matriz_final = np.zeros((NAXIS2,NAXIS1))
         for i in range(NAXIS1):
             for j in range(NAXIS2):
                 matriz_final[j][i] = matriz[i][j]
-        return matriz_final
+        return NDData(matriz_final)
 
     else:
         
@@ -141,4 +142,4 @@ def rotar(matriz, NAXIS1, NAXIS2, angulo):
                         matriz_final[a][b] = matriz[x][y]
                         break
                             
-        return matriz_final
+        return NDData(matriz_final)
