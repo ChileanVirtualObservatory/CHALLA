@@ -3,6 +3,12 @@
 import numpy as np
 import math
 import info_imagen
+
+
+
+import numpy as np
+import math
+import info_imagen
 from astropy.nddata import NDData
 
 def escalar(matriz, NAXIS1, NAXIS2, razon):

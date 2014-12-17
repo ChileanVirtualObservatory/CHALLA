@@ -3,6 +3,7 @@
 import math
 import numpy as np
 from info_imagen import distancia
+from astropy.nddata import NDData
 
 def deproyectar(x,y,NAXIS1,NAXIS2,borde,matriz,radio):
     """
@@ -18,25 +19,28 @@ def deproyectar(x,y,NAXIS1,NAXIS2,borde,matriz,radio):
     return:
         - imagen deproyectada.
     """
+    matriz = NDData(matriz)
+    borde = NDData(borde)
     matriz_final = np.zeros(((y+(math.cos(90*math.pi/180))*radio)*2+2,radio*2+2))
+    matriz_final = NDData(matriz_final)
 
     for i in range(NAXIS1):
         for j in range(NAXIS2):
 
             a = b = c = d = 0
-            for r in range (len(borde)-1):
+            for r in range (len(borde.data)-1):
 
                 if ( r % 2 != 0):
                     continue
-                if i < borde[r]:
+                if i < borde.data[r]:
                     a = 1
-                if i > borde[r]:
+                if i > borde.data[r]:
                     b = 10
-                if j > borde[r+1]:
+                if j > borde.data[r+1]:
                     c = 100
-                if j < borde[r+1]:
+                if j < borde.data[r+1]:
                     d = 1000
-                if i == borde[r] and j == borde[r+1]:
+                if i == borde.data[r] and j == borde.data[r+1]:
                     a,b,c,d = 1,10,100,1000
                     break
 
@@ -76,9 +80,9 @@ def deproyectar(x,y,NAXIS1,NAXIS2,borde,matriz,radio):
             fil = x + (math.sin(angulo*math.pi/180))*radio
             col = y + (math.cos(angulo*math.pi/180))*radio
 
-            matriz_final[int(fil),int(col)] = matriz[i][j]
-            matriz_final[int(fil),math.ceil(col)] = matriz[i][j]
-            matriz_final[math.ceil(fil),int(col)] = matriz[i][j]
-            matriz_final[math.ceil(fil),math.ceil(col)] = matriz[i][j]
+            matriz_final.data[int(fil),int(col)] = matriz.data[i][j]
+            matriz_final.data[int(fil),math.ceil(col)] = matriz.data[i][j]
+            matriz_final.data[math.ceil(fil),int(col)] = matriz.data[i][j]
+            matriz_final.data[math.ceil(fil),math.ceil(col)] = matriz.data[i][j]
 
-    return NDData(matriz_final)
+    return matriz_final

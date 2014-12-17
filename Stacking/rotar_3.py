@@ -22,35 +22,40 @@ def rotar(matriz, NAXIS1, NAXIS2, angulo):
         - rotacion 270: transpose()
 
     """
+
+    matriz = NDData(matriz)
     if (angulo > 360 or angulo < 1):
         print "<Error: Imagen no rotada, angulo no permitido>"
-        return NDData(matriz)
+        return matriz
     # ------ PARA 0 NO ES NECESARIO ROTAR    ------ #
     if (angulo == 0 or angulo ==360):
-        return NDData(matriz)
+        return matriz
     
     # ------ PARA 90, 180 y 270 ES UNA SIMPLE TRASLACION DE PUNTOS ------ #
     
     if (angulo == 90):
         matriz_final = np.zeros((NAXIS2,NAXIS1))
+        matriz_final = NDData(matriz_final)
         for i in range(NAXIS1):
             for j in range(NAXIS2):
-                matriz_final[NAXIS2 - j -1][i] = matriz[i][j]
-        return NDData(matriz_final)
+                matriz_final.data[NAXIS2 - j -1][i] = matriz.data[i][j]
+        return matriz_final
 
     if (angulo == 180):
         matriz_final = np.zeros((NAXIS1,NAXIS2))
+        matriz_final = NDData(matriz_final)
         for i in range(NAXIS1):
             for j in range(NAXIS2):
-                matriz_final[NAXIS1 - i - 1][NAXIS2 - j -1] = matriz[i][j]
-        return NDData(matriz_final)
+                matriz_final.data[NAXIS1 - i - 1][NAXIS2 - j -1] = matriz.data[i][j]
+        return matriz_final
 
     if (angulo == 270):
         matriz_final = np.zeros((NAXIS2,NAXIS1))
+        matriz_final = NDData(matriz_final)
         for i in range(NAXIS1):
             for j in range(NAXIS2):
-                matriz_final[j][i] = matriz[i][j]
-        return NDData(matriz_final)
+                matriz_final.data[j][i] = matriz.data[i][j]
+        return matriz_final
 
     else:
         
@@ -87,6 +92,7 @@ def rotar(matriz, NAXIS1, NAXIS2, angulo):
         distancia_1 = fila_mas_positiva + abs(fila_mas_negativa)
         distancia_2 = columna_mas_positiva + abs(columna_mas_negativa)
         matriz_final = np.zeros((distancia_1+1,distancia_2+1))
+        matriz_final = NDData(matriz_final)
 
         for x in range(NAXIS1):
             for y in range(NAXIS2):
@@ -119,27 +125,27 @@ def rotar(matriz, NAXIS1, NAXIS2, angulo):
                     
                     #Solo A es decimal
                     if(suma_banderas == 201):
-                        matriz_final[int(a)][b] += porcentaje_fila_abajo*matriz[x][y]
-                        matriz_final[math.ceil(a)][b] += porcentaje_fila_arriba*matriz[x][y]
+                        matriz_final.data[int(a)][b] += porcentaje_fila_abajo*matriz.data[x][y]
+                        matriz_final.data[math.ceil(a)][b] += porcentaje_fila_arriba*matriz.data[x][y]
                         break
                                                                                     
                     #Solo B es decimal
                     if(suma_banderas == 210):
-                        matriz_final[a][int(b)] += porcentaje_columna_izquierda*matriz[x][y]
-                        matriz_final[a][math.ceil(b)] += porcentaje_columna_derecha*matriz[x][y]
+                        matriz_final.data[a][int(b)] += porcentaje_columna_izquierda*matriz.data[x][y]
+                        matriz_final.data[a][math.ceil(b)] += porcentaje_columna_derecha*matriz.data[x][y]
                         break
 
                     #Ambos son decimales
                     if(suma_banderas == 211):
-                        matriz_final[int(a)][int(b)] += porcentaje_fila_abajo*porcentaje_columna_izquierda*matriz[x][y]
-                        matriz_final[math.ceil(a)][math.ceil(b)] += porcentaje_fila_arriba*porcentaje_columna_derecha*matriz[x][y]
-                        matriz_final[int(a)][math.ceil(b)] += porcentaje_fila_abajo*porcentaje_columna_derecha*matriz[x][y]
-                        matriz_final[math.ceil(a)][int(b)] +=  porcentaje_fila_arriba*porcentaje_columna_izquierda*matriz[x][y]
+                        matriz_final.data[int(a)][int(b)] += porcentaje_fila_abajo*porcentaje_columna_izquierda*matriz.data[x][y]
+                        matriz_final.data[math.ceil(a)][math.ceil(b)] += porcentaje_fila_arriba*porcentaje_columna_derecha*matriz.data[x][y]
+                        matriz_final.data[int(a)][math.ceil(b)] += porcentaje_fila_abajo*porcentaje_columna_derecha*matriz.data[x][y]
+                        matriz_final.data[math.ceil(a)][int(b)] +=  porcentaje_fila_arriba*porcentaje_columna_izquierda*matriz.data[x][y]
                         break
                     
                     #Ambos son enteros
                     if(suma_banderas == 200):
-                        matriz_final[a][b] = matriz[x][y]
+                        matriz_final.data[a][b] = matriz.data[x][y]
                         break
                             
-        return NDData(matriz_final)
+        return matriz_final
