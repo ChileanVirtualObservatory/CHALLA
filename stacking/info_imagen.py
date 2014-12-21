@@ -3,6 +3,7 @@
 import math
 from astropy.nddata import NDData
 import numpy as np
+from astropy.io import fits
 
 def distancia(x1,y1,x2,y2):
     """
@@ -83,10 +84,6 @@ def eje_mayor(borde):
         - dato utilizado para representar "borde"
 
 
-        - if ( j % 2 != 0): 
-        continue
-    
-        - Lineas sin sentido: si sumas 2 a i, el modulo 2 seguira siendo igual o distinto de 0
     """
     borde = NDData(borde) 
     info_elipse = np.zeros((4,))
