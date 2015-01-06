@@ -1,0 +1,146 @@
++++ Source 'AutoGenCube-0' added
+ |- Component added to 'AutoGenCube-0' (AutoGenCube-0-c1)
+ ---+ Model: mol_list = ['CH2CHCNv=0'] @ spa_form=('normal', 189.7847943449037, 142.8663708585495, 1.6824216703623858), spe_form=('skew', 0.8189510596417666, 0.8204799329381252), z=0.000335255169017, grad=('linear', 1.6824216703623858, 3.720132570940314)
+ |- Component added to 'AutoGenCube-0' (AutoGenCube-0-c2)
+ ---+ Model: mol_list = ['CH213CHCN', '13CH2CHCN', 'CH2CH13CN'] @ spa_form=('normal', 177.52903727739027, 290.933428584072, 1.5291283950137549), spe_form=('skew', 9.751499443789504, 0.3754675408069226), z=0.000335255169017, grad=('linear', 1.5291283950137549, 7.992694164398287)
+ |- Component added to 'AutoGenCube-0' (AutoGenCube-0-c3)
+ ---+ Model: mol_list = ['g-Ga-(CH2OH)2'] @ spa_form=('normal', 131.38123303340097, 225.0508581152473, 2.6176910669916267), spe_form=('skew', 1.6600882719502512, 0.991451091512481), z=0.000335255169017, grad=('linear', 2.6176910669916267, 1.1988440993198002)
+ |- Component added to 'AutoGenCube-0' (AutoGenCube-0-c4)
+ ---+ Model: mol_list = ['H2CCCHCN'] @ spa_form=('normal', 236.64874550072074, 36.79543731230164, 1.7608868053854523), spe_form=('skew', 8.360155242720557, -0.1612081017468625), z=0.000335255169017, grad=('linear', 1.7608868053854523, 7.128178652856886)
+ |- Component added to 'AutoGenCube-0' (AutoGenCube-0-c5)
+ ---+ Model: mol_list = ['c-H13CCCH', 'c-HCCCHv=0'] @ spa_form=('normal', 269.95435146903463, 56.87193593445622, 1.6421587969933642), spe_form=('skew', 5.3642153232141805, 0.4783306383675252), z=0.000335255169017, grad=('linear', 1.6421587969933642, 8.921875500828046)
+ |- Component added to 'AutoGenCube-0' (AutoGenCube-0-c6)
+ ---+ Model: mol_list = ['c-H2COCH2'] @ spa_form=('normal', 85.54022251203081, 93.56508186660746, 0.8988765158759267), spe_form=('skew', 8.104260895436097, -0.4035430693254318), z=0.000335255169017, grad=('linear', 0.8988765158759267, 5.846137882742316)
+ |- Component added to 'AutoGenCube-0' (AutoGenCube-0-c7)
+ ---+ Model: mol_list = ['l-HC4N'] @ spa_form=('normal', 158.14116226553128, 128.50151805510728, 1.8198639552438325), spe_form=('skew', 4.912051698895847, -0.8867408193471973), z=0.000335255169017, grad=('linear', 1.8198639552438325, 3.9481748625894197)
+ |- Component added to 'AutoGenCube-0' (AutoGenCube-0-c8)
+ ---+ Model: mol_list = ['t-H13COOH'] @ spa_form=('normal', 150.5930148277461, 100.32015205810569, 0.446328644714638), spe_form=('skew', 8.3594388706472, -0.8392723125941637), z=0.000335255169017, grad=('linear', 0.446328644714638, 1.5886889436286422)
+ |- Component added to 'AutoGenCube-0' (AutoGenCube-0-c9)
+ ---+ Model: mol_list = ['l-H2CCC'] @ spa_form=('normal', 85.47742038829706, 245.50407973971838, 1.0425613350703347), spe_form=('skew', 6.1791792455617145, 0.8037299364395736), z=0.000335255169017, grad=('linear', 1.0425613350703347, 3.3946391942650127)
+ |- Component added to 'AutoGenCube-0' (AutoGenCube-0-c10)
+ ---+ Model: mol_list = ['HC5Nv=0'] @ spa_form=('normal', 60.855287503006096, 241.40671169283272, 0.568789705202838), spe_form=('skew', 7.198686884261059, -0.8669128237515729), z=0.000335255169017, grad=('linear', 0.568789705202838, 5.184457935583624)
+[*] Generating cube AutoGenCube-0
+  |- Angular Coordinates (deg): ra=0.0 dec=0.0
+  |- FOV (arcsec): ra=[-0.06944444444444445, 0.06944444444444445] dec=[-0.06944444444444445, 0.06944444444444445]
+  |- Spectral (MHz): center=290000 bandwidth=[289750.0, 290250.0]
+  |- Cube size: 32 x 32 x 2000 
+  |- Band: 7
+*** Source: AutoGenCube-0
+  |- Projecting AutoGenCube-0-c1
+   --+ Generating template image
+   --+ Generating template line distribution
+   --+ Loading and correcting lines
+      |- Projecting Vinyl Cyanide (CH2CHCNv=0) around 289755.054423 Mhz, at 0.887310943705 K
+      |- Projecting Vinyl Cyanide (CH2CHCNv=0) around 289954.497565 Mhz, at 0.878944041739 K
+      |- Projecting Vinyl Cyanide (CH2CHCNv=0) around 290169.738502 Mhz, at 0.735515366477 K
+      |- Projecting Vinyl Cyanide (CH2CHCNv=0) around 290186.704588 Mhz, at 0.879228519431 K
+  |- Projecting AutoGenCube-0-c2
+   --+ Generating template image
+   --+ Generating template line distribution
+   --+ Loading and correcting lines
+      |- Projecting Vinyl Cyanide  (CH213CHCN) around 290138.67219 Mhz, at 0.134561782424 K
+      |- Projecting Vinyl Cyanide  (13CH2CHCN) around 289818.079146 Mhz, at 0.37079582627 K
+      |- Projecting Vinyl Cyanide  (13CH2CHCN) around 289818.51019 Mhz, at 0.37079582627 K
+      |- Projecting Vinyl Cyanide  (13CH2CHCN) around 290042.841073 Mhz, at 0.618072119137 K
+      |- Projecting Vinyl Cyanide  (13CH2CHCN) around 290044.002362 Mhz, at 0.618072119137 K
+      |- Projecting Vinyl Cyanide  (13CH2CHCN) around 290061.649076 Mhz, at 0.629259077366 K
+      |- Projecting Vinyl Cyanide  (13CH2CHCN) around 290079.89229 Mhz, at 0.478473774132 K
+      |- Projecting Vinyl Cyanide  (CH2CH13CN) around 289954.618006 Mhz, at 0.95827274774 K
+      |- Projecting Vinyl Cyanide  (CH2CH13CN) around 290138.750716 Mhz, at 1.18461607106 K
+      |- Projecting Vinyl Cyanide  (CH2CH13CN) around 290140.082263 Mhz, at 1.18461607106 K
+      |- Projecting Vinyl Cyanide  (CH2CH13CN) around 290200.598244 Mhz, at 1.16032868735 K
+      |- Projecting Vinyl Cyanide  (CH2CH13CN) around 290225.284718 Mhz, at 0.128546759195 K
+  |- Projecting AutoGenCube-0-c3
+   --+ Generating template image
+   --+ Generating template line distribution
+   --+ Loading and correcting lines
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289750.639844 Mhz, at 0.363401818748 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289750.639844 Mhz, at 0.363401818748 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289754.778931 Mhz, at 0.4139274932 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289789.710038 Mhz, at 0.333847483231 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289855.514992 Mhz, at 0.355417730856 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289855.514992 Mhz, at 0.355417730856 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289890.743699 Mhz, at 0.380211401478 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289890.743699 Mhz, at 0.380211401478 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289898.617738 Mhz, at 0.467005878677 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289926.521289 Mhz, at 0.405757141061 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289926.521289 Mhz, at 0.405757141061 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289930.991487 Mhz, at 0.243923916627 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289930.991487 Mhz, at 0.243923916627 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289963.586811 Mhz, at 0.431976046421 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289963.586811 Mhz, at 0.431976046421 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289995.018846 Mhz, at 0.248179989241 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 289995.135085 Mhz, at 0.248179989241 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290002.774345 Mhz, at 0.458778724798 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290002.774345 Mhz, at 0.458778724798 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290012.403172 Mhz, at 0.245125798893 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290012.403272 Mhz, at 0.245125798893 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290019.9478 Mhz, at 0.429622604247 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290045.04121 Mhz, at 0.486065311267 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290045.04121 Mhz, at 0.486065311267 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290072.299946 Mhz, at 0.3111377062 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290091.505983 Mhz, at 0.51372580647 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290091.505983 Mhz, at 0.51372580647 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290093.28738 Mhz, at 0.346566847809 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290143.499908 Mhz, at 0.54164017562 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290143.499908 Mhz, at 0.54164017562 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290202.636927 Mhz, at 0.564398557745 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290202.636927 Mhz, at 0.564398557745 K
+      |- Projecting Ethylene Glycol (g-Ga-(CH2OH)2) around 290230.127141 Mhz, at 0.527930934202 K
+  |- Projecting AutoGenCube-0-c4
+   --+ Generating template image
+   --+ Generating template line distribution
+   --+ Loading and correcting lines
+      |- Projecting Cyanoallene (H2CCCHCN) around 289755.159559 Mhz, at 0.509051182166 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 289755.159759 Mhz, at 0.509051182166 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 289775.677935 Mhz, at 0.299769144523 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 289775.677935 Mhz, at 0.299769144523 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 289876.201625 Mhz, at 0.4800255227 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 289876.201625 Mhz, at 0.4800255227 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 289903.611411 Mhz, at 0.609027421977 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 289972.109268 Mhz, at 0.609005183934 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 290031.747155 Mhz, at 0.450218251698 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 290031.747155 Mhz, at 0.450218251698 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 290089.799211 Mhz, at 0.627895243191 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 290119.853683 Mhz, at 0.325276746255 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 290119.853683 Mhz, at 0.325276746255 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 290146.43119 Mhz, at 0.643877905359 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 290216.189569 Mhz, at 0.4200187564 K
+      |- Projecting Cyanoallene (H2CCCHCN) around 290216.189569 Mhz, at 0.4200187564 K
+  |- Projecting AutoGenCube-0-c5
+   --+ Generating template image
+   --+ Generating template line distribution
+   --+ Loading and correcting lines
+      |- Projecting Cyclopropenylidene (c-H13CCCH) around 290003.808592 Mhz, at 0.136868398838 K
+      |- Projecting Cyclopropenylidene (c-H13CCCH) around 290209.867851 Mhz, at 0.136871962287 K
+      |- Projecting Cyclopropenylidene (c-HCCCHv=0) around 290154.75598 Mhz, at 0.940316017402 K
+  |- Projecting AutoGenCube-0-c6
+   --+ Generating template image
+   --+ Generating template line distribution
+   --+ Loading and correcting lines
+      |- Projecting Ethylene Oxide (c-H2COCH2) around 290047.210237 Mhz, at 0.196994822116 K
+  |- Projecting AutoGenCube-0-c7
+   --+ Generating template image
+   --+ Generating template line distribution
+   --+ Loading and correcting lines
+      |- Projecting 3-Cyano-1,2-propadienylidene (l-HC4N) around 290081.297561 Mhz, at 0.872420571376 K
+      |- Projecting 3-Cyano-1,2-propadienylidene (l-HC4N) around 290082.193062 Mhz, at 0.871153100069 K
+      |- Projecting 3-Cyano-1,2-propadienylidene (l-HC4N) around 290082.734143 Mhz, at 0.872350854537 K
+  |- Projecting AutoGenCube-0-c8
+   --+ Generating template image
+   --+ Generating template line distribution
+   --+ Loading and correcting lines
+      |- Projecting Formic Acid (t-H13COOH) around 289781.024127 Mhz, at 0.537407180484 K
+      |- Projecting Formic Acid (t-H13COOH) around 289866.823582 Mhz, at 0.698926427058 K
+      |- Projecting Formic Acid (t-H13COOH) around 290126.458297 Mhz, at 0.537384829613 K
+  |- Projecting AutoGenCube-0-c9
+   --+ Generating template image
+   --+ Generating template line distribution
+   --+ Loading and correcting lines
+      |- Projecting Propadienylidene (l-H2CCC) around 290160.762594 Mhz, at 0.681917330986 K
+      |- Projecting Propadienylidene (l-H2CCC) around 290160.762594 Mhz, at 0.681917330986 K
+  |- Projecting AutoGenCube-0-c10
+   --+ Generating template image
+   --+ Generating template line distribution
+   --+ Loading and correcting lines
+      |- Projecting Cyanobutadiyne (HC5Nv=0) around 290171.957445 Mhz, at 0.782563477261 K
