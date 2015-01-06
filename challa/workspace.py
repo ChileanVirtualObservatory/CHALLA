@@ -8,13 +8,17 @@ from astropy import log
 from astropy.vo.samp import SAMPIntegratedClient
 from urlparse import urlparse
 
+
 def create(name):
    ws=dict()
    ws['workspace']=name
    return ws
 
-def send(ws,name):
+def send(name,ws=_ws_df):
    _send(ws[name],name)
+
+def elements(ws=_ws_df):
+   return ws
 
 #This function was copied from a astropy development branch, please remove it when highlevel commands become available
 def _send(data, name, destination='all', timeout=10, hub=None):
@@ -101,7 +105,7 @@ def _send(data, name, destination='all', timeout=10, hub=None):
 
     output_file.close()
 
-def _fits_consumer(ws,path,name):
+def _fits_consumer(path,name,ws=_ws_df):
 #TODO: Support more filetypes
    wname=ws['workspace']
    log.info("Loading "+name+".fits into "+wname)
@@ -124,23 +128,24 @@ def _fits_consumer(ws,path,name):
          log.warning("HDU type not recognized, ignoring "+hdu.name+" ("+counter+")")
       counter+=1
 
-def _hdf5_consumer(ws,path,name):
+def _hdf5_consumer(path,name,ws):
    log.warning("HDF5 format not supported yet. Ignoring file "+name+".hdf5")
-def _votable_consumer(ws,path,name):
+def _votable_consumer(path,name,ws):
    log.warning("VOTable format not supported yet. Ignoring file "+name+".xml")
-def _ascii_consumer(ws,path,name):
+def _ascii_consumer(path,name,ws):
    log.warning("ASCII format not supported yet. Ignoring file "+name)
 
 
-def file_import(ws,path):
+def import_file(path,ws=_ws_df):
    filename=os.path.basename(path)
    name,ext=os.path.splitext(filename)
    if ext == '.fits':
-      _fits_consumer(ws,path,name)
+      _fits_consumer(path,name,ws)
    elif ext == '.hdf5':
-      _hdf5_consumer(ws,path,name)
+      _hdf5_consumer(path,name,ws)
    elif ext == '.xml':
-      _votable_consumer(ws,path,name)
+      _votable_consumer(path,name,ws)
    else:
-      _ascii_consumer(ws,path,name)
-   
+      _ascii_consumer(path,name,ws)
+
+_ws_df=create("DEFAULT")  
