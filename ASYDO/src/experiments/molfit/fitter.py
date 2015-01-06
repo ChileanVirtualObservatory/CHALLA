@@ -8,8 +8,8 @@ import astropy
 #from scipy.optimize import leastsq
 from lmfit.models import GaussianModel
 
-fwhm_bords=(0.8, 10)
-f_pos=290000
+fwhm_bords=(0.8, 10) # between  1 y 3 +- 2
+f_pos=290000 
 bw=500.0
 spa_pix=32.0
 spe_pix=2000.0
@@ -19,7 +19,7 @@ wstp=10
 dbpath = "../../ASYDO"
 template = factory.IMCConf(0, dbpath,
                            mol_list="all",
-                           mol_prob=0.3,
+                           mol_prob=0.3, # CO + isotopos (++)
                            x_pos=0.0,
                            y_pos=0.0,
                            f_pos=f_pos,
@@ -27,13 +27,13 @@ template = factory.IMCConf(0, dbpath,
                            spe_pix=spe_pix,
                            fov=500,
                            bw=bw,
-                           rvel=(100, 1000),
-                           temp=(50, 500),
-                           semiaxis=(10, 300),
+                           rvel=(100, 1000), # +- 150
+                           temp=(50, 500), # 10 a 100
+                           semiaxis=(10, 300), # 10 a 20 
                            fwhm=fwhm_bords,
                            angle=(0, math.pi),
-                           rot=(1,10),
-                           curtosis=(-3, 3))
+                           rot=(1,10), # f(semiaxis,fwhm)*factor(seed)
+                           curtosis=(-1, 1))
 def unique(seq):
     seen = list()
     seen_add = seen.append
