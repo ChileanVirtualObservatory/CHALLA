@@ -5,20 +5,41 @@ from astropy.table import Table
 import numpy as np
 import os
 from astropy import log
+from astropy import __version__
 from astropy.vo.samp import SAMPIntegratedClient
-from urlparse import urlparse
-
+from urlparse import urlparse, urljoin
+import time
+import tempfile
 
 def create(name):
    ws=dict()
    ws['workspace']=name
    return ws
 
-def send(name,ws=_ws_df):
-   _send(ws[name],name)
+_ws_df=create("DEFAULT")  
+
+def send(name,ws=_ws_df,destination='all'):
+   _send(ws[name],name,destination)
 
 def elements(ws=_ws_df):
-   return ws
+   retval=ws.copy()
+   del retval['workspace']
+   return retval
+
+
+
+def declare_metadata(client):
+
+    metadata = {"samp.name": "astropy",
+                "samp.description.text": "The Astropy Project",
+                "samp.icon.url": client.client._xmlrpcAddr + "/samp/icon",
+                "samp.documentation.url": "http://docs.astropy.org/en/stable/vo/samp",
+                "author.name": "The Astropy Collaboration",
+                "home.page": "http://www.astropy.org",
+                "astropy.version": __version__
+                }
+
+    client.declare_metadata(metadata)
 
 #This function was copied from a astropy development branch, please remove it when highlevel commands become available
 def _send(data, name, destination='all', timeout=10, hub=None):
@@ -53,8 +74,9 @@ def _send(data, name, destination='all', timeout=10, hub=None):
         message['samp.mtype'] = "table.load.votable"
 
     elif isinstance(data, NDData):
-
-        data.write(output_file, format='fits')
+        
+        fits.writeto(output_file, data.data)
+        #data.write(output_file, format='fits')
         message['samp.mtype'] = "image.load.fits"
 
     elif isinstance(data, np.ndarray):
@@ -88,18 +110,21 @@ def _send(data, name, destination='all', timeout=10, hub=None):
     client.connect(hub=hub)
     declare_metadata(client)
 
-    if destination == 'all':
-        for c in client.get_subscribed_clients(message['samp.mtype']):
-            client.call_and_wait(c, message, timeout=str(timeout))
-    elif destination in ['ds9', 'topcat', 'aladin']:
-        clients = list_clients()
-        for target_client in clients:
-            name = target_client['name']
-            if destination in name.lower():
-                client.call_and_wait(str(target_client['id']), message,
-                                     timeout=str(timeout))
-    else:
-        client.call_and_wait(destination, message, timeout=str(timeout))
+    try:
+       if destination == 'all':
+           for c in client.get_subscribed_clients(message['samp.mtype']):
+               client.call_and_wait(c, message, timeout=str(timeout))
+       elif destination in ['ds9', 'topcat', 'aladin']:
+           clients = list_clients()
+           for target_client in clients:
+               name = target_client['name']
+               if destination in name.lower():
+                   client.call_and_wait(str(target_client['id']), message,
+                                        timeout=str(timeout))
+       else:
+           client.call_and_wait(destination, message, timeout=str(timeout))
+    except:
+       pass
 
     client.disconnect()
 
@@ -148,4 +173,3 @@ def import_file(path,ws=_ws_df):
    else:
       _ascii_consumer(path,name,ws)
 
-_ws_df=create("DEFAULT")  
