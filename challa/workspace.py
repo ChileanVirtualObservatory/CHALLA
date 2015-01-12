@@ -138,7 +138,7 @@ def _fits_consumer(path,name,ws=_ws_df):
    counter=0
    for hdu in hdulist:
       if isinstance(hdu,fits.PrimaryHDU) or isinstance(hdu,fits.ImageHDU):
-         log.info("Processing HDU "+str(counter)+" (image)")
+         log.info("Processing HDU "+str(counter)+" (Image)")
          #TODO: check for WCS data...
          ndd=NDData(hdu.data,meta=hdu.header)
          ide=name+"-"+str(counter)
@@ -172,4 +172,22 @@ def import_file(path,ws=_ws_df):
       _votable_consumer(path,name,ws)
    else:
       _ascii_consumer(path,name,ws)
+
+def real_dims(ndd):
+   shape=[]
+   dim=0
+
+   for i in range(ndd.ndim):
+      if ndd.shape[i] != 1:
+         shape.append(ndd.shape[i])
+         dim+=1
+   if dim==1:
+      otype="Spectra"
+   elif dim==2:
+      otype="Image"
+   elif dim>=3:
+      otype="Cube"
+   else:
+      log.warning("NDData of 0 dimension? ignoring...")
+   return (dim,shape,otype)
 

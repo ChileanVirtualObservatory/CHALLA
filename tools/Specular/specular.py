@@ -6,11 +6,12 @@ import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
 import wx.lib.inspection
-from wx.lib.mixins.listctrl import ColumnSorterMixin
+#from wx.lib.mixins.listctrl import ColumnSorterMixin
+from wx.lib.mixins.listctrl import ListCtrlAutoWidthMixin
 import challa.workspace as ws
 from astropy.nddata import NDData
 from astropy.table import Table
-
+from matplotlib import pyplot as plt  
 
 def load_test():
    ws.import_file("fits/calibrated.ms.image.spectrum.J113740.6-010454.spw0.image.fits")
@@ -18,23 +19,10 @@ def load_test():
    ws.import_file("fits/NGC6240_continuum.fits")
    ws.import_file("fits/logfile_alma_hatlas_cycle1_inc-z_beye.fits")
 
-actresses = {
-1 : ('jessica alba', 'pomona', '1981'), 
-2 : ('sigourney weaver', 'new york', '1949'),
-3 : ('angelina jolie', 'los angeles', '1975'), 
-4 : ('natalie portman', 'jerusalem', '1981'),
-5 : ('rachel weiss', 'london', '1971'), 
-6 : ('scarlett johansson', 'new york', '1984') 
-}
-
-class SortedListCtrl(wx.ListCtrl, ColumnSorterMixin):
+class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent):
-        wx.ListCtrl.__init__(self, parent, -1, style=wx.LC_REPORT)
-        ColumnSorterMixin.__init__(self, 30)
-        self.itemDataMap = actresses
-
-    def GetListCtrl(self):
-        return self
+        wx.ListCtrl.__init__(self, parent, -1, style=wx.LC_REPORT|wx.LC_ALIGN_LEFT|wx.LC_HRULES|wx.LC_VRULES)
+        ListCtrlAutoWidthMixin.__init__(self)
 
 
 class Specular(wx.Frame):
@@ -48,7 +36,6 @@ class Specular(wx.Frame):
       toolbar = self.CreateToolBar()
       qtool = toolbar.AddLabelTool(wx.ID_ANY, 'Quit', wx.Bitmap('quit.png'))
       toolbar.Realize()
-
       self.Bind(wx.EVT_TOOL, self.OnQuit, qtool)
 
    def createMenuBar(self):
@@ -59,80 +46,143 @@ class Specular(wx.Frame):
       self.SetMenuBar(menubar)
       self.Bind(wx.EVT_MENU, self.OnQuit, fitem)
 
-   def createPanels(self):
-      self.main_panel = wx.Panel(self, 1)
-
-      main_box = wx.BoxSizer(wx.HORIZONTAL)
-      self.createFigures()
-      self.cubeImagePanel=FigureCanvas(self.main_panel,-1,self.figureA)
-      self.cubeImagePanel.SetMinSize((10,10))
-      self.secondImagePanel=FigureCanvas(self.main_panel,-1,self.figureA)
-      self.secondImagePanel.SetMinSize((10,10))
-      #self.wslist = wx.ListCtrl(main_panel, -1, style=wx.LC_REPORT)
-      self.wslist = SortedListCtrl(self.main_panel)
-      self.wslist.InsertColumn(0, 'cubename', width=100)
-      self.wslist.InsertColumn(1, 'type', width=100)
-      self.wslist.InsertColumn(2, 'dims', wx.LIST_FORMAT_RIGHT, 90)
+   def createFigures(self):
+      self.figure1 = matplotlib.figure.Figure()
+      self.figure2 = matplotlib.figure.Figure()
+      self.figure3 = matplotlib.figure.Figure()
+      self.figure4 = matplotlib.figure.Figure()
+      self.mainPlot = self.figure1.add_subplot(111)
+      self.auxPlot  = self.figure2.add_subplot(111)
+      self.analysisPlot  = self.figure3.add_subplot(111)
+      self.resultPlot  = self.figure4.add_subplot(111)
+   
+   def updateWorkspace(self):
       items = ws.elements().items()
-      count=0
+      self.myRowDict=dict()
       for key, data in items:
+         print key
          if isinstance(data,Table):
             index = self.wslist.InsertStringItem(sys.maxint, key)
             self.wslist.SetStringItem(index, 1, "Table")
             self.wslist.SetStringItem(index, 2, "---")
-            self.wslist.SetItemData(index, count)
+            self.myRowDict[index] = key
          elif  isinstance(data,NDData):
+            (dim,shape,otype)=ws.real_dims(data)
             index = self.wslist.InsertStringItem(sys.maxint, key)
-            if data.ndim==1:
-               self.wslist.SetStringItem(index, 1, "Spectra")
-            elif data.ndim==2:
-               self.wslist.SetStringItem(index, 1, "Image")
-            elif data.ndim==3:
-               self.wslist.SetStringItem(index, 1, "Cube")
-            else:
-               continue
-            self.wslist.SetStringItem(index, 2, str(data.shape))
-            self.wslist.SetItemData(index, count)
-         else:
-            continue
-         count=count+1
+            self.wslist.SetStringItem(index, 1, otype)
+            self.wslist.SetStringItem(index, 2, str(shape))
+            self.myRowDict[index] = key
 
-      main_box.Add(self.wslist,flag=wx.EXPAND|wx.LEFT,proportion=1,border=10)
-      main_box.Add(self.cubeImagePanel,flag=wx.EXPAND,proportion=1,border=10)
-      main_box.Add(self.secondImagePanel,flag=wx.EXPAND|wx.RIGHT,proportion=1,border=10)
-      self.main_panel.SetSizer(main_box)
-
+   def createPanels(self):
+      self.createFigures()
       
-      self.second_panel = wx.Panel(self, 1)
+      #Create main panels
+      self.primary_panel = wx.Panel(self)
       main_box = wx.BoxSizer(wx.HORIZONTAL)
-      #self.createFigures()
-      self.clumpsImagePanel=FigureCanvas(self.second_panel,-1,self.figureA)
-      self.clumpsImagePanel.SetMinSize((10,10))
-      self.resultImagePanel=FigureCanvas(self.second_panel,-1,self.figureA)
-      self.resultImagePanel.SetMinSize((10,10))
-      self.cpListBox = wx.ListBox(self.second_panel, -1)
-      main_box.Add(self.cpListBox,flag=wx.EXPAND|wx.LEFT,proportion=1,border=10)
-      main_box.Add(self.clumpsImagePanel,flag=wx.EXPAND,proportion=1,border=10)
-      main_box.Add(self.resultImagePanel,flag=wx.EXPAND|wx.RIGHT,proportion=1,border=10)
-      self.second_panel.SetSizer(main_box)
+      self.mainPanel=wx.Panel(self)
+      inner_box = wx.BoxSizer(wx.VERTICAL)
+     
+      stc=wx.StaticBox(self.mainPanel,label="Main View")
+      self.mainImgPanel=FigureCanvas(self.mainPanel,-1,self.figure1)
+      self.mainImgPanel.SetMinSize((10,10))
+      self.sld = wx.Slider(self.mainPanel, value=50, minValue=0, maxValue=100,style=wx.SL_HORIZONTAL|wx.SL_LABELS)
+      self.sld.Enable(False)
+      self.sld.Bind(wx.EVT_SCROLL, self.OnSliderScroll)
+      inner_box.Add(stc)
+      inner_box.Add(self.mainImgPanel,flag=wx.EXPAND|wx.TOP,proportion=1)
+      inner_box.Add(self.sld,flag=wx.EXPAND|wx.BOTTOM)
+      self.mainPanel.SetSizer(inner_box)
 
+      self.auxPanel=FigureCanvas(self.primary_panel,-1,self.figure2)
+      self.auxPanel.SetMinSize((10,10))
 
+      #Create list of objects
+      self.workspace = wx.Panel(self)
+      inner_box = wx.BoxSizer(wx.VERTICAL)
+      
+      self.wslist = AutoWidthListCtrl(self.primary_panel)
+      self.wslist.InsertColumn(0, 'cubename')#, width=500)
+      self.wslist.InsertColumn(1, 'type')#, width=40)
+      self.wslist.InsertColumn(2, 'dims')#, wx.LIST_FORMAT_RIGHT, 30)
+      self.updateWorkspace()
+      
+      #Dynamics of the panel
+      self.wslist.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected)
+
+      #Panel Layout
+      main_box.Add(self.wslist,flag=wx.EXPAND|wx.LEFT,proportion=1,border=10)
+      main_box.Add(self.mainPanel,flag=wx.EXPAND,proportion=1,border=10)
+      main_box.Add(self.auxPanel,flag=wx.EXPAND|wx.RIGHT,proportion=1,border=10)
+      self.primary_panel.SetSizer(main_box)
+      
+      #Create analysis panels
+      self.secondary_panel = wx.Panel(self, 1)
+      second_box = wx.BoxSizer(wx.HORIZONTAL)
+      self.analysisPanel=FigureCanvas(self.secondary_panel,-1,self.figure3)
+      self.analysisPanel.SetMinSize((10,10))
+      self.resultPanel=FigureCanvas(self.secondary_panel,-1,self.figure3)
+      self.resultPanel.SetMinSize((10,10))
+      self.cpListBox = wx.ListBox(self.secondary_panel, -1)
+      
+      #Panel Layout
+      second_box.Add(self.cpListBox,flag=wx.EXPAND|wx.LEFT,proportion=1,border=10)
+      second_box.Add(self.analysisPanel,flag=wx.EXPAND,proportion=1,border=10)
+      second_box.Add(self.resultPanel,flag=wx.EXPAND|wx.RIGHT,proportion=1,border=10)
+      self.secondary_panel.SetSizer(second_box)
+
+      #General Layout
       frame_box = wx.BoxSizer(wx.VERTICAL)
-      frame_box.Add(self.main_panel,flag= wx.EXPAND|wx.TOP,proportion=1,border=10)
-      frame_box.Add(self.second_panel,flag= wx.EXPAND|wx.BOTTOM,proportion=1,border=10)
-
+      frame_box.Add(self.primary_panel,flag= wx.EXPAND|wx.TOP,proportion=1,border=10)
+      frame_box.Add(self.secondary_panel,flag= wx.EXPAND|wx.BOTTOM,proportion=1,border=10)
       self.SetSizer(frame_box)
-
+      
+      #Status Bar
       self.statusbar = self.CreateStatusBar()
       self.statusbar.SetStatusText("Ready.")
 
-   def createFigures(self):
-      self.figureA = matplotlib.figure.Figure()
-      self.axesA = self.figureA.add_subplot(111)
-      #t= numpy.arange(0.0,10,1.0)
-      #s = [0,1,0,1,0,2,1,2,1,0]
-      #self.y_max=10
-      #self.axesA.plot(t,s)
+   def PlotMain(self,ndd):
+      (dim,shape,otype)=ws.real_dims(ndd)
+      self.sld.SetValue(50)
+      self.sld.SetMax(100)
+      if dim == 1:
+         self.mainPlot.plot(ndd)
+         self.sld.Enable(False)
+      elif dim == 2:
+         img=ndd
+         if ndd.ndim==4:
+            img=ndd[0][0]
+         if ndd.ndim==3:
+            img=ndd[0]
+         self.mainPlot.imshow(img)
+         self.sld.Enable(False)
+      elif dim == 3:
+         if ndd.ndim==4:
+            self.target=ndd[0]
+         self.sld.SetMax(shape[0]-1)
+         self.sldIndex=int(shape[0]/2)
+         self.sld.SetValue(self.sldIndex)
+         self.sld.Enable(True)
+         self.mainPlot.imshow(self.target[self.sldIndex])
+ 
+   def OnSliderScroll(self, e):
+      obj = e.GetEventObject()
+      self.sldIndex = obj.GetValue()
+      self.mainPlot.clear()
+      self.mainPlot.imshow(self.target[self.sldIndex])
+      self.mainImgPanel.draw()
+      self.mainImgPanel.Refresh()
+
+
+   def onItemSelected(self,event):
+      currentItem = event.m_itemIndex
+      key=self.myRowDict[currentItem]
+      print key
+      items=ws.elements()
+      self.mainPlot.clear()
+      self.PlotMain(items[key])
+      self.mainImgPanel.draw()
+      self.mainImgPanel.Refresh()
+
  
    def OnQuit(self, e):
       self.Close()
