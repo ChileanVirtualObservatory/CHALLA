@@ -24,7 +24,6 @@ class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
         wx.ListCtrl.__init__(self, parent, -1, style=wx.LC_REPORT|wx.LC_ALIGN_LEFT|wx.LC_HRULES|wx.LC_VRULES)
         ListCtrlAutoWidthMixin.__init__(self)
 
-
 class Specular(wx.Frame):
    def __init__(self,parent,title):
       wx.Frame.__init__(self,parent,title=title,size=(1024,768))
@@ -175,8 +174,10 @@ class Specular(wx.Frame):
          self.sld.Enable(True)
          self.mainPlot.imshow(self.target[self.sldIndex])
          self.rms=[]
+         print "start"
          for i in range(shape[0]):
             self.rms.append(numpy.linalg.norm(self.target[i])/(shape[1]*shape[2]))
+         print" end"
          self.auxPlot.plot(self.rms)
          self.auxPlot.axvline(self.sldIndex,c="r")
  
