@@ -73,6 +73,16 @@ class Specular(wx.Frame):
             self.wslist.SetStringItem(index, 2, str(shape))
             self.myRowDict[index] = key
 
+   def selectPixel(self, event):
+        print 'in selectPixel callback: clicked at (%g, %g)' % (event.x, event.y)
+        #menu = wxMenu()
+        #item_id = wxNewId()
+        #menu.Append(item_id, 'item') 
+        #wx.EVT_MENU(menu, item_id, self.callback)
+        #self.PopupMenu(menu, wx.Point(event.x, event.y))
+        #menu.Destroy()
+
+
    def createPanels(self):
       self.createFigures()
       
@@ -85,6 +95,7 @@ class Specular(wx.Frame):
       stc=wx.StaticBox(self.mainPanel,label="Main View")
       self.mainImgPanel=FigureCanvas(self.mainPanel,-1,self.figure1)
       self.mainImgPanel.SetMinSize((10,10))
+      self.mainImgPanel.mpl_connect('button_press_event', self.selectPixel) 
       self.sld = wx.Slider(self.mainPanel, value=50, minValue=0, maxValue=100,style=wx.SL_HORIZONTAL|wx.SL_LABELS)
       self.sld.Enable(False)
       self.sld.Bind(wx.EVT_SCROLL, self.OnSliderScroll)
@@ -101,9 +112,9 @@ class Specular(wx.Frame):
       inner_box = wx.BoxSizer(wx.VERTICAL)
       
       self.wslist = AutoWidthListCtrl(self.primary_panel)
-      self.wslist.InsertColumn(0, 'cubename')#, width=500)
-      self.wslist.InsertColumn(1, 'type')#, width=40)
-      self.wslist.InsertColumn(2, 'dims')#, wx.LIST_FORMAT_RIGHT, 30)
+      self.wslist.InsertColumn(0, 'Resource')#, width=500)
+      self.wslist.InsertColumn(1, 'Type')#, width=40)
+      self.wslist.InsertColumn(2, 'Dims')#, wx.LIST_FORMAT_RIGHT, 30)
       self.updateWorkspace()
       
       #Dynamics of the panel
@@ -141,13 +152,13 @@ class Specular(wx.Frame):
       self.statusbar.SetStatusText("Ready.")
 
    def PlotMain(self,ndd):
-      (dim,shape,otype)=ws.real_dims(ndd)
+      (self.dim,shape,otype)=ws.real_dims(ndd)
       self.sld.SetValue(50)
       self.sld.SetMax(100)
-      if dim == 1:
+      if self.dim == 1:
          self.mainPlot.plot(ndd)
          self.sld.Enable(False)
-      elif dim == 2:
+      elif self.dim == 2:
          img=ndd
          if ndd.ndim==4:
             img=ndd[0][0]
@@ -155,7 +166,7 @@ class Specular(wx.Frame):
             img=ndd[0]
          self.mainPlot.imshow(img)
          self.sld.Enable(False)
-      elif dim == 3:
+      elif self.dim == 3:
          if ndd.ndim==4:
             self.target=ndd[0]
          self.sld.SetMax(shape[0]-1)
@@ -163,25 +174,39 @@ class Specular(wx.Frame):
          self.sld.SetValue(self.sldIndex)
          self.sld.Enable(True)
          self.mainPlot.imshow(self.target[self.sldIndex])
+         self.rms=[]
+         for i in range(shape[0]):
+            self.rms.append(numpy.linalg.norm(self.target[i])/(shape[1]*shape[2]))
+         self.auxPlot.plot(self.rms)
+         self.auxPlot.axvline(self.sldIndex,c="r")
  
    def OnSliderScroll(self, e):
       obj = e.GetEventObject()
       self.sldIndex = obj.GetValue()
       self.mainPlot.clear()
+      self.auxPlot.clear()
       self.mainPlot.imshow(self.target[self.sldIndex])
+      self.auxPlot.plot(self.rms)
+      self.auxPlot.axvline(self.sldIndex,c="r")
       self.mainImgPanel.draw()
       self.mainImgPanel.Refresh()
+      self.auxPanel.draw()
+      self.auxPanel.Refresh()
 
 
    def onItemSelected(self,event):
       currentItem = event.m_itemIndex
       key=self.myRowDict[currentItem]
-      print key
+      self.statusbar.SetStatusText("Loading Data...")
       items=ws.elements()
       self.mainPlot.clear()
+      self.auxPlot.clear()
       self.PlotMain(items[key])
       self.mainImgPanel.draw()
       self.mainImgPanel.Refresh()
+      self.auxPanel.draw()
+      self.auxPanel.Refresh()
+      self.statusbar.SetStatusText("Ready.")
 
  
    def OnQuit(self, e):
@@ -194,8 +219,8 @@ class Specular(wx.Frame):
 
 load_test()
 app = wx.App(redirect=False)
-frame=Specular(None,"SpeCuLar")
+frame=Specular(None,"Specular")
 frame.Show()
 frame.Centre()
-wx.lib.inspection.InspectionTool().Show()
+#wx.lib.inspection.InspectionTool().Show()
 app.MainLoop()
