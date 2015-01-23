@@ -28,18 +28,18 @@ def elements(ws=_ws_df):
 
 
 
-def declare_metadata(client):
+#def declare_metadata(client):
+#
+#    metadata = {"samp.name": "astropy",
+#                "samp.description.text": "The Astropy Project",
+#                "samp.icon.url": client.client._xmlrpcAddr + "/samp/icon",
+#                "samp.documentation.url": "http://docs.astropy.org/en/stable/vo/samp",
+#                "author.name": "The Astropy Collaboration",
+#                "home.page": "http://www.astropy.org",
+#                "astropy.version": __version__
+#                }
 
-    metadata = {"samp.name": "astropy",
-                "samp.description.text": "The Astropy Project",
-                "samp.icon.url": client.client._xmlrpcAddr + "/samp/icon",
-                "samp.documentation.url": "http://docs.astropy.org/en/stable/vo/samp",
-                "author.name": "The Astropy Collaboration",
-                "home.page": "http://www.astropy.org",
-                "astropy.version": __version__
-                }
-
-    client.declare_metadata(metadata)
+#    client.declare_metadata(metadata)
 
 #This function was copied from a astropy development branch, please remove it when highlevel commands become available
 #def _send(data, name, destination='all', timeout=10, hub=None):
@@ -189,5 +189,6 @@ def real_dims(ndd):
       otype="Cube"
    else:
       log.warning("NDData of 0 dimension? ignoring...")
+      return 
    return (dim,shape,otype)
 
