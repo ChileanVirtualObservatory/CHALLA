@@ -1,0 +1,88 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=pdflatex 2014.5.25)  19 JAN 2015 17:15
+entering extended mode
+ restricted \write18 enabled.
+ %&-line parsing enabled.
+**sun_master.tex
+(./sun_master.tex
+LaTeX2e <2014/05/01>
+Babel <3.9k> and hyphenation patterns for 78 languages loaded.
+
+! LaTeX Error: File `starlink.cls' not found.
+
+Type X to quit or <RETURN> to proceed,
+or enter new name. (Default extension: cls)
+
+Enter file name: 
+! Undefined control sequence.
+l.5 \stardoccategory
+                        {Starlink User Note}
+? 
+
+! LaTeX Error: Missing \begin{document}.
+
+See the LaTeX manual or LaTeX Companion for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.5 \stardoccategory    {S
+                          tarlink User Note}
+? 
+Missing character: There is no S in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no a in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no l in font nullfont!
+Missing character: There is no i in font nullfont!
+Missing character: There is no n in font nullfont!
+Missing character: There is no k in font nullfont!
+Missing character: There is no U in font nullfont!
+Missing character: There is no s in font nullfont!
+Missing character: There is no e in font nullfont!
+Missing character: There is no r in font nullfont!
+Missing character: There is no N in font nullfont!
+Missing character: There is no o in font nullfont!
+Missing character: There is no t in font nullfont!
+Missing character: There is no e in font nullfont!
+! Undefined control sequence.
+l.6 \stardocinitials
+                        {SUN}
+? 
+Missing character: There is no S in font nullfont!
+Missing character: There is no U in font nullfont!
+Missing character: There is no N in font nullfont!
+! Undefined control sequence.
+l.7 \stardocsource
+                        {sun\stardocnumber}
+? 
+Missing character: There is no s in font nullfont!
+Missing character: There is no u in font nullfont!
+Missing character: There is no n in font nullfont!
+! Undefined control sequence.
+l.7 \stardocsource      {sun\stardocnumber
+                                          }
+? 
+! Undefined control sequence.
+l.8 \stardocnumber
+                        {255.2}
+? ∂
+Type <return> to proceed, S to scroll future error messages,
+R to run without stopping, Q to run quietly,
+I to insert something, E to edit your file,
+1 or ... or 9 to ignore the next 1 to 9 tokens of input,
+H for help, X to quit.
+? 
+! Emergency stop.
+l.8 \stardocnumber
+                        {255.2}
+End of file on the terminal!
+
+ 
+Here is how much of TeX's memory you used:
+ 10 strings out of 493117
+ 200 string characters out of 6135433
+ 52909 words of memory out of 5000000
+ 3571 multiletter control sequences out of 15000+600000
+ 3640 words of font info for 14 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 10i,0n,7p,96b,16s stack positions out of 5000i,500n,10000p,200000b,80000s
+!  ==> Fatal error occurred, no output PDF file produced!
