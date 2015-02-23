@@ -132,9 +132,9 @@ class Explorer(wx.Frame):
          self.mainPlot.axis('equal') 
       elif self.dim == 2:
          img=ndd.data
-         if ndd.ndim==4:
+         if ndd.data.ndim==4:
             img=ndd.data[0][0]
-         if ndd.ndim==3:
+         if ndd.data.ndim==3:
             img=img=ndd.data[0]
         
          dec_l=meta['CRVAL1'] - meta['CRPIX1']*meta['CDELT1']
@@ -148,7 +148,7 @@ class Explorer(wx.Frame):
          #ax.set_yticks(np.arange(max_val))
 
       elif self.dim == 3:
-         if ndd.ndim==4:
+         if ndd.data.ndim==4:
             img=ndd.data[0]
          #self.mainPlot.imshow(img.mean(axis=(0)))
          dec_l=meta['CRVAL1'] - meta['CRPIX1']*meta['CDELT1']

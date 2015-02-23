@@ -177,9 +177,9 @@ def real_dims(ndd):
    shape=[]
    dim=0
 
-   for i in range(ndd.ndim):
-      if ndd.shape[i] != 1:
-         shape.append(ndd.shape[i])
+   for i in range(ndd.data.ndim):
+      if ndd.data.shape[i] != 1:
+         shape.append(ndd.data.shape[i])
          dim+=1
    if dim==1:
       otype="Spectra"
