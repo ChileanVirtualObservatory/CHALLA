@@ -1,4 +1,0 @@
-CHALLA
-======
-
-CHivo ALgorithm LibrAry
