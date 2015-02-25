@@ -23,6 +23,7 @@
 \documentclass[manuscript]{aastex}
 
 \usepackage{amsmath}
+%\usepackage[]{algorithm2e}
 
 %% preprint2 produces a double-column, single-spaced document:
 
@@ -162,35 +163,64 @@ Ojective: detect clump cores, structures, connections, etc.
 
 This algorithm, introduced by \citep{Stutzki}, assumes Gaussian forms for 
 each clump core: a 2D Gaussian function for the spatial form and a
-Gaussian spectral line profile. The model can be written as a scaled 
-3D Gaussian distribution
+Gaussian spectral line profile. The clump model can be written as a scaled 
+3D Gaussian distribution plus a constant
 \begin{equation}
-I\cdot{G(\vl{x};\vs{\mu},\vs{\Lambda}}) =\frac{I}{\sqrt{(2\pi)^3|\vs{\Lambda}^{-1}|}}
+M_\Theta(\vl{x})=I\cdot{G(\vl{x};\vs{\mu},\vs{\Lambda}}) + b  =\frac{I}{\sqrt{(2\pi)^3|\vs{\Lambda}^{-1}|}}
 \exp\left(-\frac{1}{2}({\vl{x}}-{\vs{\mu}})^\top{\vs{\Lambda}}({\vl{x}}-{\vs{\mu}})\right)
++ b
 \end{equation}
-where $I$ is the intensity of the clump, $\vl{x} = [ \alpha,\delta,\nu ]^\top$
-a spatio-frequency position in the cube, $\vs{\mu} = [ \alpha_0,\delta_0,\nu_0 ]$ the 
-clump center, and $\vs{\Lambda}$ is the precision matrix (inverse of
-covariance). The specific model used by \citet{Stutzki} corresponds to the
+where $I$ is the intensity of the clump, $b$ is an offset variable, 
+$\vl{x} = [ \alpha,\delta,\nu ]^\top$
+a spatio-frequency position in the cube, $\vs{\mu} = [ \alpha_0,\delta_0,\nu_0
+]^\top$ the 
+clump center, and $\vs{\Lambda}$ is a positive definite matrix called precision
+matrix (inverse of covariance). The specific model used by \citet{Stutzki} corresponds to the
 following precision matrix:
 % Matrix
 \begin{equation}
+\vs{\Lambda} =
 \left[ \begin{array}{ccc}
-\frac{\cos^2\phi}{{\Delta \alpha}^2} + \frac{\sin^2\phi}{{\Delta \delta}^2} +
-\frac{{\nabla \nu_\alpha}^2}{{\Delta \nu}^2} &
-\frac{-\sin2\phi}{2{\Delta \alpha}^2} + \frac{\sin2\phi}{2{\Delta \delta}^2} +
-\frac{{\nabla \nu_\alpha} {\nabla \nu_\delta} }{{\Delta \nu}^2} & 
-- \frac{{\nabla \nu_\alpha}}{{\Delta \nu}^2} \\
- &
-\frac{\sin^2\phi}{{\Delta \alpha}^2} + \frac{\cos^2\phi}{{\Delta \delta}^2} +
-\frac{{\nabla \nu_\delta}^2}{{\Delta \nu}^2} &
-- \frac{{\nabla \nu_\delta}}{{\Delta \nu}^2} \\
- &
- &
+\left(\frac{\cos^2\phi}{{\sigma_\alpha}^2} + \frac{\sin^2\phi}{{\sigma_\delta}^2} +
+\frac{{\nabla \nu_\alpha}^2}{{\sigma_\nu}^2}\right) &
+\left(\frac{-\sin2\phi}{2{\sigma_\alpha}^2} + \frac{\sin2\phi}{2{\sigma_\delta}^2} +
+\frac{{\nabla \nu_\alpha} {\nabla \nu_\delta} }{{\sigma_\nu}^2}\right) & 
+- \frac{{\nabla \nu_\alpha}}{{\sigma\nu}^2}  \\
+\left(\frac{-\sin2\phi}{2{\sigma_\alpha}^2} +
+\frac{\sin2\phi}{2{\sigma_\delta}^2} +
+\frac{{\nabla \nu_\alpha} {\nabla \nu_\delta} }{{\sigma_\nu}^2}\right) & 
+\left(\frac{\sin^2\phi}{{\sigma_\alpha}^2} + \frac{\cos^2\phi}{{\sigma_\delta}^2} +
+\frac{{\nabla \nu_\delta}^2}{{\sigma_\nu}^2} \right) &
+- \frac{{\nabla \nu_\delta}}{{\sigma_\nu}^2} \\
+- \frac{{\nabla \nu_\alpha}}{{\sigma\nu}^2} &
+- \frac{{\nabla \nu_\delta}}{{\sigma_\nu}^2} &
 \frac{1}{{\Delta \nu}^2}
 \end{array} \right]
 \end{equation}
+where $\phi$ corresponds to the rotation angle of the spatial semiaxes of the
+2D Gaussian parametrized by $\sigma_\alpha$ and $\sigma_\delta$, and the
+broadening is modelled by a $\sigma_\nu$ (i.e., $\Delta \nu=2\sqrt{2\log(2)} \sigma_\nu$)
+and the velocity gradient $\vs{\nabla\nu}$ (e.g., $\nabla\nu_\alpha = \partial
+\nu/\partial\alpha $). If we setup $a=\frac{I}{\sqrt{(2\pi)^3|\vs{\Lambda}^{-1}|}}$
+for convenience, we obtain the eleven parameters $\Theta=
+\{a,b,\alpha_0,\delta_0,\nu_0,\phi,\sigma_\alpha,\sigma_\delta, \sigma_\nu,
+\nabla\nu_\alpha,\nabla\nu_\delta\}$ that defines a clump core.
 
+The algorithm consist on fitting the brightest clump and subtract it from data
+until an stropping criterion is met.
+GaussClumps uses unconstrained optimization to minimize a modified
+$\tilde{\chi}^2$ function that includes soft-constraints as value penalties
+besides the squared error:
+
+\footnotesize
+\begin{equation}
+\tilde{\chi}^2(\Theta) = \sum_{i \in nb(\mu)} \left\{ w_i(y_i - \hat{y}_i)^2  +
+s_0 \exp(\hat{y}_i - y_i) \right\}
+ + s_c\left(\frac{(\alpha_0 - \alpha_{max})^2 + (\delta_0 -
+\delta_{max})^2}{{\Delta_{beam}}^2} +
+\frac{(\nu_0 - \nu_{max})^2}{{\Delta_{res}}^2} \right) + s_a\left(a + b -
+y_{max}\right)^2
+\end{equation}
 
 
 \acknowledgments
