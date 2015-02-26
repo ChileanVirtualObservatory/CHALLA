@@ -166,11 +166,12 @@ each clump core: a 2D Gaussian function for the spatial form and a
 Gaussian spectral line profile. The clump model can be written as a scaled 
 3D Gaussian distribution plus a constant
 \begin{equation}
-M_\Theta(\vl{x})=I\cdot{G(\vl{x};\vs{\mu},\vs{\Lambda}}) + b  =\frac{I}{\sqrt{(2\pi)^3|\vs{\Lambda}^{-1}|}}
+\hat{y}_\theta(\vl{x})=m\cdot\mathcal{N}(\vl{x};\vs{\mu},\vs{\Lambda}^{-1}) + b
+=\frac{m}{\sqrt{(2\pi)^3|\vs{\Lambda}^{-1}|}}
 \exp\left(-\frac{1}{2}({\vl{x}}-{\vs{\mu}})^\top{\vs{\Lambda}}({\vl{x}}-{\vs{\mu}})\right)
 + b
 \end{equation}
-where $I$ is the intensity of the clump, $b$ is an offset variable, 
+where $m$ is the intensity of the clump, $b$ is an offset variable, 
 $\vl{x} = [ \alpha,\delta,\nu ]^\top$
 a spatio-frequency position in the cube, $\vs{\mu} = [ \alpha_0,\delta_0,\nu_0
 ]^\top$ the 
@@ -201,27 +202,56 @@ where $\phi$ corresponds to the rotation angle of the spatial semiaxes of the
 2D Gaussian parametrized by $\sigma_\alpha$ and $\sigma_\delta$, and the
 broadening is modelled by a $\sigma_\nu$ (i.e., $\Delta \nu=2\sqrt{2\log(2)} \sigma_\nu$)
 and the velocity gradient $\vs{\nabla\nu}$ (e.g., $\nabla\nu_\alpha = \partial
-\nu/\partial\alpha $). If we setup $a=\frac{I}{\sqrt{(2\pi)^3|\vs{\Lambda}^{-1}|}}$
-for convenience, we obtain the eleven parameters $\Theta=
+\nu/\partial\alpha $). If we setup $a=\frac{m}{\sqrt{(2\pi)^3|\vs{\Lambda}^{-1}|}}$
+for convenience, we obtain the eleven parameters $\vs{\theta}=
 \{a,b,\alpha_0,\delta_0,\nu_0,\phi,\sigma_\alpha,\sigma_\delta, \sigma_\nu,
 \nabla\nu_\alpha,\nabla\nu_\delta\}$ that defines a clump core.
 
 The algorithm consist on fitting the brightest clump and subtract it from data
-until an stropping criterion is met.
-GaussClumps uses unconstrained optimization to minimize a modified
-$\tilde{\chi}^2$ function that includes soft-constraints as value penalties
-besides the squared error:
+until an stropping criterion is met. The brightest clump is fitted using
+the maximum intensity point of the cube $y_{max} = C(\vl{x}_{max})$.
+Then, GaussClumps uses unconstrained optimization to minimize a modified
+$\chi^2$ function that includes soft-constraints as value penalties
+besides a weighted residual:
 
 \footnotesize
 \begin{equation}
-\tilde{\chi}^2(\Theta) = \sum_{i \in nb(\mu)} \left\{ w_i(y_i - \hat{y}_i)^2  +
-s_0 \exp(\hat{y}_i - y_i) \right\}
- + s_c\left(\frac{(\alpha_0 - \alpha_{max})^2 + (\delta_0 -
-\delta_{max})^2}{{\Delta_{beam}}^2} +
-\frac{(\nu_0 - \nu_{max})^2}{{\Delta_{res}}^2} \right) + s_a\left(a + b -
-y_{max}\right)^2
+\chi^2_\theta \propto \sum_{\{i | \vl{x}_i \in \Theta_{max} \}} \left\{ w(\vl{x}_i)(y_i -
+\hat{y}_\theta(\vl{x}_i))^2  +
+s_0 \exp( \hat{y}_\theta(\vl{x}_i) - y_i) \right\} + s_c \|D^{-1}(\vs{\mu} - \vl{x}) \|_2^2 
++ s_a\left(a + b - y_{max}\right)^2
 \end{equation}
+\normalsize
+where
+$w(\vl{x})=\mathcal{N}(\vl{x};\vl{x}_{max},\vl{W})$ is a Gaussian
+weighting function with diagonal covariance, $\vl{D}$ is a diagonal matrix with elements
+that defines each dimension beam and spectral resolution, and
+the `$s$' parameters correspond to a weight for 
+each soft-constraint term that was added to the $\chi^2$ function: 
+$s_0$ controls how important is that the fitted intensity remains below the
+observed one at each point, $s_c$ controls how important is that the clump center remain near the
+maximum point, and $s_a$ controls how important is that the fitted amplitude
+($a+b$) remains near the observed maximum. The $\Theta_{max}$ set corresponds to
+all the nearby points to the maximum point, which depends on $\vl{W}$.
+We define $\mathcal{P}=\{\vl{W},\vl{D},s_0,s_c,s_a\}$
+as the set of ``problem parameters'', which describes the type of problem 
+that the algorithm is solving.
 
+%\begin{algorithm}[H]
+% \KwData{$\vl{X},\vl{y},$}
+% \KwResult{how to write algorithm with \LaTeX2e }
+% initialization\;
+% \While{not at end of this document}{
+%  read current\;
+%  \eIf{understand}{
+%   go to next section\;
+%   current section becomes this one\;
+%   }{
+%   go back to the beginning of current section\;
+%  }
+% }
+% \caption{How to write algorithms}
+%\end{algorithm}
 
 \acknowledgments
 
