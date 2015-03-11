@@ -1,7 +1,8 @@
 import challa.workspace as ws
-import challa.clumps as clumps
+import challa.clumps as cl
 import numpy as np
 import timeit
+from challa.cube import Cube
 
 global M
 global model
@@ -9,10 +10,13 @@ global model
 def f1():
    clumps._eval(M,model)
 
-ws.import_file("../fits/logfile_alma_hatlas_cycle1_inc-z_beye.fits")
+ws.import_file("fits/calibrated.ms.image.spectrum.J113740.6-010454.spw0.image.fits")
 elm=ws.elements()
-ndd=elm['logfile_alma_hatlas_cycle1_inc-z_beye-1']
-model=(0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0,1.1)
-M=np.random.rand(3,1000)
-print timeit.timeit(f1,number=1000)
+#print elm
+ndd=elm['calibrated.ms.image.spectrum.J113740.6-010454.spw0.image-0']
+params=cl.gc_default_params()
+cb=Cube(ndd.data[0],ndd.meta)
+theta=cl.gauss_clumps(cb,params)
+
+
 
