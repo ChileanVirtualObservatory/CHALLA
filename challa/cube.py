@@ -29,6 +29,8 @@ class Cube:
         self.nu_axis=np.linspace(nu_value-nu_cpix*self.nu_delta,nu_value+(nu_elms-nu_cpix)*self.nu_delta, num=nu_elms)
 
     def max(self):
+        #print "max", self.data.max()
+        #print "argmax", self.data.argmax()
         index=np.unravel_index(self.data.argmax(),self.data.shape)
         y=self.data[index]
         x=np.empty(3)
@@ -63,9 +65,16 @@ class Cube:
 #        pos=self.find_position()
 
     def feature_space(self,center,window):
-        print "subcube"
+        #print "subcube"
         #print center
         #print window
+        #print self.nu_axis
+        #print self.meta['NAXIS3']
+        #print "endcube"
+        ra_ci=np.argmin(np.abs(self.ra_axis-center[2]));
+        ra_ui=np.argmin(np.abs(self.ra_axis-center[2]-window[2]));
+        ra_li=np.argmin(np.abs(self.ra_axis-center[2]+window[2]));
+        dec_ci=np.argmin(np.abs(self.dec_axis-center[1]));
         ra_ci=np.argmin(np.abs(self.ra_axis-center[2]));
         ra_ui=np.argmin(np.abs(self.ra_axis-center[2]-window[2]));
         ra_li=np.argmin(np.abs(self.ra_axis-center[2]+window[2]));
@@ -90,18 +99,20 @@ class Cube:
         #print ra_ui, ra_li
         ra_axis=np.linspace(crval1-crpix1*self.ra_delta,crval1+(naxis1-crpix1)*self.ra_delta, num=naxis1)
         dec_axis=np.linspace(crval2-crpix2*self.dec_delta,crval2+(naxis2-crpix2)*self.dec_delta, num=naxis2)
-        nu_axis=np.linspace (crval2-crpix3*self.nu_delta,crval3+(naxis3-crpix3)*self.nu_delta, num=naxis3)
-
+        nu_axis=np.linspace (crval3-crpix3*self.nu_delta,crval3+(naxis3-crpix3)*self.nu_delta, num=naxis3)
+#        print ra_axis
+#        print dec_axis
+#        print nu_axis
         adn=np.meshgrid(nu_axis,dec_axis,ra_axis, indexing='ij')
         X=np.empty((3,len(ra_axis)*len(dec_axis)*len(nu_axis)))
         X[0]=adn[0].ravel()
         X[1]=adn[1].ravel()
         X[2]=adn[2].ravel()
-        print len(ra_axis)
+        #print len(ra_axis)
         #y=self.data[nu_li:nu_ui,dec_li:dec_ui,ra_li:ra_ui].ravel()
         yidx=(nu_li,nu_ui,dec_li,dec_ui,ra_li,ra_ui)
-        print "where"
-        print yidx
+        #print "where"
+        #print yidx
         return X,yidx
         
 

@@ -3,7 +3,7 @@ from functions import Gaussian
 from scipy.optimize import leastsq
 import copy
 import matplotlib.pyplot as plt
-
+import sys
 # Model: a,b,x0,y0,v0,dvx,dvy,Dx,Dy,Dv,phi
 
 def clump2gauss((a,b,alp0,del0,v0,phi,Dalp,Ddel,Dv,dvalp,dvdel)):
@@ -24,7 +24,9 @@ def clump2gauss((a,b,alp0,del0,v0,phi,Dalp,Ddel,Dv,dvalp,dvdel)):
    return (a,b,mu,L)
 
 def gc_chi2(model, y, X,resv,params,xmax,ymax):
-   print model
+   #print "it", model
+   sys.stdout.write('.')
+   sys.stdout.flush()
    wd=params['weight_deltas']*resv
    G=Gaussian(clump2gauss(model),True)
    wmod=(1,0,model[2],model[3],model[4],0,wd[2],wd[1],wd[0],0,0)
@@ -51,17 +53,16 @@ def gc_chi2(model, y, X,resv,params,xmax,ymax):
    sa=params['sa']
    val=t1 + s0*t2 + sc*t3 + sa*t4
    return np.sqrt(val)
-   #print np.sqrt(val.sum())
-   #return rv
 
-def _modified_chi_leastsq(cube,params,ymax,xmax):
+def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
+   plt.ion() 
    a=ymax
    b=0
    alp0=xmax[2]
    del0=xmax[1]
    v0=xmax[0]
    phi=0
-   resv=np.array([10*float(cube.meta['CDELT3']),float(cube.meta['BMAJ']),float(cube.meta['BMAJ'])])
+   resv=np.array([abs(float(cube.meta['CDELT3'])),abs(float(cube.meta['BMIN'])),abs(float(cube.meta['BMIN']))])
    sigmas=params['few_deltas']*resv
    Dalp=sigmas[2]
    Ddel=sigmas[1]
@@ -70,53 +71,91 @@ def _modified_chi_leastsq(cube,params,ymax,xmax):
    dvdel=0
    (X,(n0,n1,d0,d1,r0,r1)) = cube.feature_space(xmax,2*params['weight_deltas']*resv) 
    p0=[a,b,alp0,del0,v0,phi,Dalp,Ddel,Dv,dvalp,dvdel]
+   print (n0,n1,d0,d1,r0,r1)
    #print "leastsq params"
-   #print p0
+   print "p0 = ", p0
    #print y
    #print X
-   print "LEAST!"
    #print cube.data.shape
    lss=cube.data[n0:n1+1,d0:d1+1,r0:r1+1]
    #print lss.shape
    res= leastsq(gc_chi2, p0, args=(lss.ravel(),X,resv,params,xmax,ymax)) 
-   #print res[0]
+   print "clump =", res[0]
    G=Gaussian(clump2gauss(res[0]),True)
    M=G.evaluate(X,False).reshape((n1-n0+1,d1-d0+1,r1-r0+1))
-   #print (n0,n1,d0,d1,r0,r1)
    #print "M"
    #clum1=M.sum(axis=1)
    #plt.imshow(clum1)
    #plt.show()
+   #print M.max()
+   ma=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].max(axis=0)
+   spe=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=(1,2))
+   prof=M.sum(axis=0)
+   #prof2=M.sum(axis=(1,2))
+   vmin=ma.min()
+   vmax=ma.max()
+   plt.clf() 
+   plt.subplot(2, 3, 1)
+   plt.imshow(ma,vmin=vmin,vmax=vmax)
+   plt.subplot(2, 3, 3)
+   plt.imshow(prof)
+   #plt.plot(prof2)
+   plt.subplot(2, 3, 2)
    cube.data[n0:n1+1,d0:d1+1,r0:r1+1] -= M
+   syn[n0:n1+1,d0:d1+1,r0:r1+1] += M
+   spe2=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=(1,2))
+   plt.imshow(cube.data[n0:n1+1,d0:d1+1,r0:r1+1].max(axis=0),vmin=vmin,vmax=vmax)
+   plt.subplot(2, 3, 6)
+   plt.imshow(syn.sum(axis=0))
+   plt.subplot(2, 3, 5)
+   plt.imshow(cube.data.sum(axis=0))
+   plt.subplot(2, 3, 4)
+   plt.plot(spe,"b")
+   plt.plot(spe2,"r")
+   plt.show() 
+   plt.pause(0.01)
    return res[0]
 
 
 def gc_default_params():
    retval=dict()
-   retval['threshold']=0.01
-   retval['few_deltas']=30
-   retval['weight_deltas']=100
-   retval['s0']=0.3
-   retval['sc']=0.3
-   retval['sa']=0.3
+   retval['threshold']=0.000001
+   retval['few_deltas']=1
+   retval['weight_deltas']=5
+   retval['s0']=1.0
+   retval['sc']=1.0
+   retval['sa']=1.0
 
    return retval
 
 def gauss_clumps(orig_cube,params):
    cube=copy.deepcopy(orig_cube)
+   syn=np.empty_like(cube.data)
    C=[]
    stop=False
+   #print cube.meta['CDELT3']
+   #print cube.meta['CRPIX3']
+   #print cube.meta['CRVAL3']
+   norm=cube.data.mean()
+   print "Initial Norm", norm
    while not stop:
       (ymax,xmax)= cube.max()
-      print "ymax,xmax"
-      print ymax,xmax
-      theta=_modified_chi_leastsq(cube,params,ymax,xmax)
-
+      print "ymax,xmax = ",ymax,xmax
+      theta=_modified_chi_leastsq(cube,params,ymax,xmax,syn)
       C.append(theta)
-      norm=np.linalg.norm(cube.data)
-      print "norm"
-      print norm
+      norm=cube.data.mean()
+      print "norm", norm
       stop = (norm < params['threshold'])
-      plt.imshow(cube.data.sum(axis=0))
-      plt.show()
+   
+   plt.clf() 
+   plt.subplot(1, 3, 2)
+   plt.imshow(cube.data.sum(axis=0))
+   plt.subplot(1, 3, 1)
+   plt.imshow(orig_cube.data.sum(axis=0))
+   plt.subplot(1, 3, 3)
+   plt.imshow(syn.sum(axis=0))
+   plt.show()
+   plt.pause(100)
+   print "RESULTS"
+   print C
    return C
