@@ -29,7 +29,6 @@ def gc_chi2(model, y, X,resv,params,xmax,ymax):
    G=Gaussian(clump2gauss(model),True)
    wmod=(1,0,model[2],model[3],model[4],0,wd[2],wd[1],wd[0],0,0)
    W=Gaussian(clump2gauss(wmod),True)
-   
    yi_fit=G.evaluate(X)
    #print len(yi_fit)
    #plt.plot(y[6100000:],"r")
@@ -40,6 +39,9 @@ def gc_chi2(model, y, X,resv,params,xmax,ymax):
    #print "yifit"
    #print yi_fit
    wi=W.evaluate(X)
+   #print y.shape, yi_fit.shape
+   #print X.shape
+   #print y.shape,yi_fit.shape
    t1=np.power(y-yi_fit,2)*wi
    t2=np.exp(yi_fit-y)
    t3=np.square(model[2]-xmax[2])/np.square(resv[2]) + np.square(model[3]-xmax[1])/np.square(resv[1]) + np.square(model[4]-xmax[0])/np.square(resv[0])
@@ -68,23 +70,24 @@ def _modified_chi_leastsq(cube,params,ymax,xmax):
    dvdel=0
    (X,(n0,n1,d0,d1,r0,r1)) = cube.feature_space(xmax,2*params['weight_deltas']*resv) 
    p0=[a,b,alp0,del0,v0,phi,Dalp,Ddel,Dv,dvalp,dvdel]
-   print "leastsq params"
+   #print "leastsq params"
    #print p0
    #print y
    #print X
    print "LEAST!"
    #print cube.data.shape
-   lss=cube.data[n0:n1,d0:d1,r0:r1]
+   lss=cube.data[n0:n1+1,d0:d1+1,r0:r1+1]
+   #print lss.shape
    res= leastsq(gc_chi2, p0, args=(lss.ravel(),X,resv,params,xmax,ymax)) 
-   print res[0]
+   #print res[0]
    G=Gaussian(clump2gauss(res[0]),True)
-   M=G.evaluate(X,False).reshape((n1-n0,d1-d0,r1-r0))
-   print (n0,n1,d0,d1,r0,r1)
+   M=G.evaluate(X,False).reshape((n1-n0+1,d1-d0+1,r1-r0+1))
+   #print (n0,n1,d0,d1,r0,r1)
    #print "M"
    #clum1=M.sum(axis=1)
    #plt.imshow(clum1)
    #plt.show()
-   cube.data[n0:n1,d0:d1,r0:r1] -= M
+   cube.data[n0:n1+1,d0:d1+1,r0:r1+1] -= M
    return res[0]
 
 

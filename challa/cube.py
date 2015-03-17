@@ -63,7 +63,7 @@ class Cube:
 #        pos=self.find_position()
 
     def feature_space(self,center,window):
-        #print "subcube"
+        print "subcube"
         #print center
         #print window
         ra_ci=np.argmin(np.abs(self.ra_axis-center[2]));
@@ -83,10 +83,11 @@ class Cube:
         crpix1=ra_ci - ra_li 
         crpix2=dec_ci - dec_li 
         crpix3=nu_ci - nu_li 
-        naxis1=ra_ui-ra_li 
-        naxis2=dec_ui-dec_li 
-        naxis3=nu_ui-nu_li 
-        print (crval3,crpix3,naxis3)
+        naxis1=ra_ui-ra_li +1 
+        naxis2=dec_ui-dec_li +1
+        naxis3=nu_ui-nu_li +1
+        #print (crval3,crpix3,naxis3)
+        #print ra_ui, ra_li
         ra_axis=np.linspace(crval1-crpix1*self.ra_delta,crval1+(naxis1-crpix1)*self.ra_delta, num=naxis1)
         dec_axis=np.linspace(crval2-crpix2*self.dec_delta,crval2+(naxis2-crpix2)*self.dec_delta, num=naxis2)
         nu_axis=np.linspace (crval2-crpix3*self.nu_delta,crval3+(naxis3-crpix3)*self.nu_delta, num=naxis3)
@@ -96,8 +97,11 @@ class Cube:
         X[0]=adn[0].ravel()
         X[1]=adn[1].ravel()
         X[2]=adn[2].ravel()
+        print len(ra_axis)
         #y=self.data[nu_li:nu_ui,dec_li:dec_ui,ra_li:ra_ui].ravel()
         yidx=(nu_li,nu_ui,dec_li,dec_ui,ra_li,ra_ui)
+        print "where"
+        print yidx
         return X,yidx
         
 
