@@ -88,7 +88,7 @@ def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
    #plt.imshow(clum1)
    #plt.show()
    #print M.max()
-   ma=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].max(axis=0)
+   ma=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=0)
    spe=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=(1,2))
    prof=M.sum(axis=0)
    #prof2=M.sum(axis=(1,2))
@@ -104,11 +104,12 @@ def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
    cube.data[n0:n1+1,d0:d1+1,r0:r1+1] -= M
    syn[n0:n1+1,d0:d1+1,r0:r1+1] += M
    spe2=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=(1,2))
-   plt.imshow(cube.data[n0:n1+1,d0:d1+1,r0:r1+1].max(axis=0),vmin=vmin,vmax=vmax)
+   plt.imshow(cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=0),vmin=vmin,vmax=vmax)
    plt.subplot(2, 3, 6)
    plt.imshow(syn.sum(axis=0))
    plt.subplot(2, 3, 5)
    plt.imshow(cube.data.sum(axis=0))
+   plt.gca().add_patch(plt.Rectangle((r0,d0),r1-r0+1,d1-d0+1,alpha=1, facecolor='none'))
    plt.subplot(2, 3, 4)
    plt.plot(spe,"b")
    plt.plot(spe2,"r")
