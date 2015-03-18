@@ -1,4 +1,4 @@
-from asydopy import *
+from challa import vu
 import random
 import math
 import sys
@@ -8,7 +8,7 @@ temp=300.0
 molist=('COv=0','13COv=0','C18O','C17O','13C18O','NH2','N2H+v=0','CNv=0','HCNv=0','HNCv=0','H2CN','CSv=0','CCS','H2S','H2CS','SO2v=0','H2CO','HCO+v=0','HC3Nv=0','HC5Nv=0','CH3OHvt=0')
 
 log=open('script-combined.log', 'w')
-dbpath="../../ASYDO"
+dbpath="../ASYDO"
 
 univ=vu.Universe(log)
 for mol in molist:
@@ -17,8 +17,9 @@ for mol in molist:
    s_y=random.uniform(40, 100)
    rot=random.uniform(10, 150)
    s_f=random.uniform(50, 120)
+   curt=random.uniform(-3, 3)
    angle=random.uniform(0,math.pi)
-   model=vu.IMCM(log,dbpath,mol,temp,('normal',s_x,s_y,angle),('skew',s_f,0),('linear',angle,rot))
+   model=vu.IMCM(log,dbpath,mol,temp,('normal',s_x,s_y,angle),('skew',s_f,curt),('linear',angle,rot))
    model.set_radial_velocity(rvel)
    univ.add_component('combined-'+mol,model)
 for i in range(49):

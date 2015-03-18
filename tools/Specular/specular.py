@@ -19,6 +19,7 @@ def load_test():
    ws.import_file("fits/calibrated.ms.line.spw0.source15.image.fits")
    ws.import_file("fits/NGC6240_continuum.fits")
    ws.import_file("fits/logfile_alma_hatlas_cycle1_inc-z_beye.fits")
+   ws.import_file("fits/combined-278000.fits")
 
 class AutoWidthListCtrl(wx.ListCtrl, ListCtrlAutoWidthMixin):
     def __init__(self, parent):
@@ -150,6 +151,8 @@ class Explorer(wx.Frame):
       elif self.dim == 3:
          if ndd.data.ndim==4:
             img=ndd.data[0]
+         else:
+            img=ndd.data
          #self.mainPlot.imshow(img.mean(axis=(0)))
          dec_l=meta['CRVAL1'] - meta['CRPIX1']*meta['CDELT1']
          dec_u=meta['CRVAL1'] + (meta['NAXIS1']- meta['CRPIX1'])*meta['CDELT1']

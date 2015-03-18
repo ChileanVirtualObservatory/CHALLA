@@ -419,7 +419,34 @@ class SpectralCube:
         prihdr['COMMENT'] = "Here's some commentary about this FITS file."
         prihdr['SIMPLE'] = True
         # prihdr['BITPIX'] = 8
-        prihdr['NAXIS'] = 3
+        prihdr['NAXIS'] = 4
+        prihdr['NAXIS1'] = len(self.alpha_axis)
+        prihdr['NAXIS2'] = len(self.delta_axis)
+        prihdr['NAXIS3'] = len(self.freq_axis)
+        prihdr['BMAJ'] = self.ang_res/DEG2ARCSEC
+        prihdr['BMIN'] = 2*self.ang_res/DEG2ARCSEC
+        prihdr['CTYPE1'] = 'RA---SIN'
+        apos=math.floor(len(self.alpha_axis)/2)
+        prihdr['CRVAL1'] = self.alpha_axis[apos]
+        prihdr['CDELT1'] = self.ang_res/DEG2ARCSEC
+        prihdr['CRPIX1'] = float(apos)+1.0
+        prihdr['CUNIT1'] = 'deg'
+        prihdr['CTYPE2'] = 'DEC--SIN'
+        dpos=math.floor(len(self.delta_axis)/2)
+        prihdr['CRVAL2'] = self.delta_axis[dpos]
+        prihdr['CDELT2'] = self.ang_res/DEG2ARCSEC
+        prihdr['CRPIX2'] = float(dpos)+1.0
+        prihdr['CUNIT2'] = 'deg'
+        prihdr['CTYPE3'] = 'FREQ'
+        fpos=0
+        prihdr['CRVAL3'] = 1000000*self.freq_axis[fpos]
+        prihdr['CDELT3'] = 1000000*self.spe_res
+        prihdr['CRPIX3'] = float(fpos)+1.0
+        prihdr['CUNIT3'] = 'Hz'
+        prihdr['CTYPE4'] = 'STOKES'
+        prihdr['CRVAL4'] = 1.0
+        prihdr['CDELT4'] = 1.0
+        prihdr['CRPIX4'] = 1.0
         hdu = fits.PrimaryHDU(header=prihdr)
         hdu.data = self.data
         return hdu

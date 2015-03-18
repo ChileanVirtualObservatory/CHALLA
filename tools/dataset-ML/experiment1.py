@@ -1,11 +1,11 @@
 # Create several cubes in parallel, using random parameters
 import matplotlib.pyplot as plt
-from asydopy import *
+from challa import factory
 import math
 import numpy as np
 
 sample_size=30
-dbpath="../../ASYDO"
+dbpath="../ASYDO"
 template=factory.IMCConf(0,dbpath,
                 mol_list="all",
                 mol_prob=0.3,
