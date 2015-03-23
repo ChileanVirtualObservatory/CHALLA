@@ -9,16 +9,9 @@ import db
 from scipy.special import erf
 
 
-
-# ## Helper constants ###
-SPEED_OF_LIGHT = 299792458.0
-S_FACTOR = 2.354820045031  # sqrt(8*ln2)
-KILO = 1000
-DEG2ARCSEC = 3600.0
-
 # ## ALMA Specific Constants ###
 MAX_CHANNELS = 9000
-MAX_BW = 2000.0  # MHz
+MAX_BW = 2000000000
 ALMA_bands = {'3': [88000, 116000], '4': [125000, 163000], '6': [211000, 275000], '7': [275000, 373000],
               '8': [385000, 500000], '9': [602000, 720000]}
 ALMA_noises = {'3': 0.01, '4': 0.012, '6': 0.02, '7': 0.04, '8': 0.08, '9': 0.16}
@@ -28,212 +21,6 @@ inten_group = [('default'), ('COv=0'), ('13COv=0'), ('HCO+, HC3N, CS, C18O, CH3O
 inten_values = [[0.1, 2], [20, 60], [5, 20], [1, 10]]
 default_iso_abundance = {'13C': 1.0 / 30, '18O': 1.0 / 60, '17O': 1.0 / 120, '34S': 1.0 / 30, '33S': 1.0 / 120,
                          '13N': 1.0 / 30, 'D': 1.0 / 30}
-
-### Toolbox functions ###
-
-
-
-def fwhm2sigma(freq,fwhm):
-    """
-    Compute the sigma in MHz given a frequency in MHz and a fwhm in km/s
-    """
-    sigma = (fwhm * 1000 / S_FACTOR) * (freq / SPEED_OF_LIGHT)
-    return sigma
-
-def freq_correct(freq,rv):
-    freq_new = math.sqrt((1 + rv * KILO / SPEED_OF_LIGHT) / (1 - rv * KILO / SPEED_OF_LIGHT)) * freq
-    return freq_new
-
-def freq_window(freq, factor, axis):
-    """
-    Compute a window centered at freq within an axis.
-
-    freq_window() returns a tuple with the lower and upper indices in the axis for a
-    frequency window of freq +- factor. The size is at most 2*factor, but
-    is limited by the axis borders. It returns (0,0) or (end,end) if the window is
-    out of the axis by the left or right respectively (i.e., end = len(axis)).
-    Equispaced axes are assumed.
-    @rtype : tuple
-    @param freq: center frequency
-    @param factor: the window factor (half window size)
-    @param axis: a equispaced array of elements
-    """
-    dlta = axis[1] - axis[0]
-    ini = int(round((freq - factor - axis[0]) / dlta))
-    end = int(round((freq + factor - axis[0]) / dlta))
-    if ini < 0:
-        ini = 0
-    if end > len(axis):
-        end = len(axis)
-    return ini, end
-
-
-def gen_line(spe_form, freq, axis):
-    """ 
-    Returns a spectral line distribution and its application window.
-
-    gen_line() generates a normalized distribution (with compact support) 
-    of a spectral line centered at freq, within an axis. The spe_form 
-    parameter is a tuple where the first element is the name of the 
-    distribution, and the next elements are their parameters. 
-    
-    The available distributions are:
-    - ("skew",fwhm,alpha) : a skew-normal distribution, where fwhm is 
-              the full width at half maximum, and alpha is the curtosis 
-              parameter. If alpha = 0, it degenerates to a Gaussian 
-              distribution, if alpha < 0, the distribution is left-biased
-              and alpha > 0 means a right bias.
-    - TODO: implement more spectral distributions
-    
-    The function returns the tuple (distro,window), where distro is the
-    spectral distribution (array), and window is a tuple of upper and 
-    lower indices (see freq_window function). The window factor is 3*sigma
-    to include relatively large tails.
-    @rtype : tuple
-    @param spe_form: a spatial form (see doc)
-    @param freq: central frequency
-    @param axis: a equispaced array of elements
-    """
-
-    def pdf(x):
-        return 1 / sqrt(2 * pi) * exp(-x ** 2 / 2)
-
-    def cdf(x):
-        return (1 + erf(x / sqrt(2))) / 2
-
-    def skew(x, ep=0, wp=1, ap=0):
-        t = (x - ep) / wp
-        return 2 / wp * pdf(t) * cdf(ap * t)
-
-    fwhm = spe_form[1]
-    a = spe_form[2]
-
-    sigma = fwhm2sigma(freq,fwhm)
-    factor = 3 * sigma
-    window = freq_window(freq, factor, axis)
-    if window[0] > window[1]:
-        return False, window
-
-    d = a / sqrt(1.0 + a ** 2)
-    w = sigma / sqrt(1.0 - (2.0 / pi) * d ** 2)
-    e = freq - w * d * sqrt(2.0 / pi)
-    distro = skew(axis[window[0]:window[1] + 1], e, w, a)
-    ss = sum(distro)
-    if ss != 0:
-        distro = distro / ss
-    #distro=np.sqrt(2*np.pi)*sigma*distro
-    return distro, window
-
-
-def spatial_window(alpha, delta, spx, spy, alpha_axis, delta_axis):
-    """
-    Compute a 2D window centered at (alpha,delta) within alpha_axis and delta_axis.
-
-    spatial_window() returns a tuple (alpha_window,delta_window), where each element 
-    are the lower and upper indices for each axis. The window correspond to a window
-    of freq +- spx or freq +- spy depending on the axis. This window is limited by 
-    the axis borders. Equispaced axes are assumed.
-    @rtype : tuple
-    @param alpha: RA center
-    @param delta: DEC center
-    @param spx: Semiaxis X
-    @param spy: Semiaxis Y
-    @param alpha_axis: a equispaced array of elements
-    @param delta_axis: a equispaced array of elements
-    """
-    dlta_x = alpha_axis[1] - alpha_axis[0]
-    dlta_y = delta_axis[1] - delta_axis[0]
-    xbord = [int(round((alpha - spx - alpha_axis[0]) / dlta_x)), int(round((alpha + spx - alpha_axis[0]) / dlta_x))]
-    ybord = [int(round((delta - spy - delta_axis[0]) / dlta_y)), int(round((delta + spy - delta_axis[0]) / dlta_y))]
-    if xbord[0] < 0:
-        xbord[0] = 0
-    if ybord[0] < 0:
-        ybord[0] = 0
-    if xbord[1] > len(alpha_axis):
-        xbord[1] = len(alpha_axis)
-    if ybord[1] > len(delta_axis):
-        ybord[1] = len(delta_axis)
-    return ybord, xbord
-
-
-def gen_surface(form, alpha, delta, alpha_axis, delta_axis):
-    """ 
-    Returns a spatial distribution and its application window.
-
-    gen_surface() generates a standarized surface distribution 
-    (with compact support) centered at (alpha,delta), within the axes. 
-    The spa_form parameter is a tuple where the first element is the 
-    name of the distribution, and the next elements are their parameters. 
-    
-    The available distributions are:
-    - ("normal",sx,sy,theta) : a 2D Gaussian (normal) distribution, 
-                with diagonal covariance [[sx,0],[0,sy], rotated by 
-                theta (in radians!).
-    - ("exp",sx,sy,theta) : exponential distribution, with semiaxes
-                sx and sy, rotated by theta (in radians!).
-    - TODO: implement more spatial distributions
-                               
-    The function returns the tuple (distro,ybord,xbord), where distro is 
-    the spatial distribution (matrix), and ybord and xbord are the tuples 
-    of upper and lower indices for the axes (see spatial_window function).
-    If the window is spurious (out of the axes or too small) this function
-    returns False.   
-    """
-    stype = form[0]
-    sx = form[1] / DEG2ARCSEC
-    sy = form[2] / DEG2ARCSEC
-    theta = form[3]
-    spx = abs(3 * sx * math.cos(theta)) + abs(3 * sy * math.sin(theta))
-    spy = abs(3 * sx * math.sin(theta)) + abs(3 * sy * math.cos(theta))
-    ybord, xbord = spatial_window(alpha, delta, spx, spy, alpha_axis, delta_axis)
-    if xbord[0] > xbord[1] or ybord[0] > ybord[1]:
-        return False, [ybord, xbord]
-    alpha_axis = alpha_axis[xbord[0]:xbord[1] + 1]
-    delta_axis = delta_axis[ybord[0]:ybord[1] + 1]
-    alpha_mesh, delta_mesh = np.meshgrid(alpha_axis, delta_axis, sparse=False, indexing='xy')
-    Xc = alpha_mesh.flatten() - alpha * np.ones(len(alpha_axis) * len(delta_axis))
-    Yc = delta_mesh.flatten() - delta * np.ones(len(alpha_axis) * len(delta_axis))
-    XX = (Xc) * math.cos(-theta) - (Yc) * math.sin(-theta)
-    YY = (Xc) * math.sin(-theta) + (Yc) * math.cos(-theta)
-    if stype == 'normal':
-        u = (XX / sx) ** 2 + (YY / sy) ** 2
-        sol = sx * sy * np.exp(-u / 2) / (2 * math.pi)
-    elif stype == 'exp':
-        u = sqrt((XX / sx) ** 2 + (YY / sy) ** 2)
-        sol = sx * sy * np.exp(-u / sqrt(2))
-    else:
-        print('!!! ERROR: No such surface type')
-        return False, [ybord, xbord]
-    mm = max(sol)
-    if mm != 0:
-        sol = sol / mm
-    res = np.reshape(sol, (len(delta_axis), len(alpha_axis)))
-    return res, (ybord, xbord)
-
-
-def gen_gradient(form, alpha, delta, alpha_axis, delta_axis, ybord, xbord):
-    """
-    Returns a matrix with gradient values within the axes, restricted to y_bord and x_bord.
-
-    gen_gradient() generate a gradient matrix centered at (alpha,delta), for the alpha_axis
-    and delta_axis, restricted by the windows ybord and xbord. The form parameter is a tuple 
-    where the first element is the gradient function, and the next elements are their parameters. 
-    The available gradient functions are:
-    - ("linear", theta, m) : linear gradient, rotated by theta, and intensity m (km/s/arcsec)
-    """
-    np.set_printoptions(threshold=np.nan)
-    gtype = form[0]
-    theta = form[1]
-    km_sarcs = form[2]
-    alpha_axis = alpha_axis[xbord[0]:xbord[1]]
-    delta_axis = delta_axis[ybord[0]:ybord[1]]
-    alpha_mesh, delta_mesh = np.meshgrid(alpha_axis, delta_axis, sparse=False, indexing='xy')
-    Xc = alpha_mesh.flatten() - alpha * np.ones(len(alpha_axis) * len(delta_axis))
-    Yc = delta_mesh.flatten() - delta * np.ones(len(alpha_axis) * len(delta_axis))
-    XX = Xc * math.cos(-theta) - (Yc) * math.sin(-theta);
-    res = np.reshape(km_sarcs * XX, (len(delta_axis), len(alpha_axis)))
-    return res
-
 
 ### Core ASYDO Classes ###
 
@@ -262,21 +49,18 @@ class Universe:
         """
         self.sources[source_name].add_component(model)
 
-    def gen_cube(self, name, alpha, delta, freq, ang_res, ang_fov, spe_res, spe_bw):
+    def gen_cube(self, name, pos,res,pix,crpix ):
         """
         Returns a SpectralCube object where all the sources within the FOV and BW are projected.
 
         This function needs the following parameters:
         - name    : name of the cube
-        - alpha   : right-ascension center
-        - delta   : declination center
-        - freq    : spectral center (frequency)
-        - ang_res : angular resolution
-        - ang_fov : angular field of view
-        - spe_res : spectral resolution
-        - spe_bw  : spectral bandwidth
+        - pos     : position (nu,dec,ra)
+        - pix     : pixels (nu,dec,ra)
+        - res     : resolution (nu,dec,ra)
+        - crpix   : cénter pixed (nu,dec,ra) from 1
         """
-        cube = SpectralCube(self.log, name, alpha, delta, freq, ang_res, ang_fov, spe_res, spe_bw)
+        cube = synthetic_cube(self.log, name, pos,res,pix,crpix)
         for src in self.sources:
             self.log.write('*** Source: ' + src + '\n')
             self.sources[src].project(cube)
@@ -287,7 +71,7 @@ class Universe:
         Wrapper function that saves a cube into a FITS (filename).
         """
         self.log.write('   -++ Saving FITS: ' + filename + '\n')
-        cube.save_fits(self.sources, filename)
+        cube.save_fits(filename)
 
     def remove_source(self, name):
         """
@@ -334,150 +118,81 @@ class Source:
             component.project(cube);
 
 
-class SpectralCube:
-    """
-    A synthetic spectral cube.
-    """
 
-    def __init__(self, log, name, alpha, delta, freq, ang_res, ang_fov, spe_res, spe_bw, band_freq=ALMA_bands,
+def synthetic_cube(log, name,pos,res,pix,crpix, band_freq=ALMA_bands,
                  band_noises=ALMA_noises):
         """ 
         Obligatory Parameters:
         - log	  : descriptor of a log file
-        - name    : name of the cube
-        - alpha   : right-ascension center
-        - delta   : declination center
-        - freq    : spectral center (frequency)
-        - ang_res : angular resolution
-        - ang_fov : angular field of view
-        - spe_res : spectral resolution
-        - spe_bw  : spectral bandwidth
-                 
+        - name    : name of the cube 
+        - pos     : position (nu,dec,ra)
+        - pix     : pixels (nu,dec,ra)
+        - res     : resolution (nu,dec,ra)
+        - crpix   : cénter pixed (nu,dec,ra) from 1
+                
         Optional Parameters:
-        - band_freq   : a diccionary of frequency ranges for the bands (key = band_name, value = (lower,upper))
+        - band_freq   : a diccionary of frequency ranges for the bands (key = band_name, value = (lower,upper)) (IN MHZ!!!)
         - band_noises : a dictionary of noise levels for each band (key = band_name, value = noise)
         """
-        self.name = name
-        self.alpha = alpha
-        self.delta = delta
-        self.freq = freq
-        self.ang_res = ang_res
-        self.ang_fov = ang_fov
-        self.spe_res = spe_res
-        self.spe_bw = spe_bw
-        log.write('[*] Generating cube ' + name + '\n')
-        log.write('  |- Angular Coordinates (deg): ra=' + str(alpha) + ' dec=' + str(delta) + '\n')
-        fact = ang_fov / DEG2ARCSEC
-        self.alpha_border = [alpha - fact / 2, alpha + fact / 2]
-        self.delta_border = [delta - fact / 2, delta + fact / 2]
-        self.alpha_axis = np.linspace(self.alpha_border[0], self.alpha_border[1], int(ang_fov / ang_res))
-        self.delta_axis = np.linspace(self.delta_border[0], self.delta_border[1], int(ang_fov / ang_res))
+        log.write('[*] Generating Synthetic Cube ' + name + '\n')
+        log.write('  |- Coordinates : ra=' + str(pos[2]) + '[deg] dec=' + str(pos[1]) + '[deg] nu='+str(pos[0])+'[Hz] \n')
         if alpha > 90 or alpha < -90:
             raise Exception('!!! ERROR: invalid coordinate: ra=' + alpha)
         if delta > 90 or delta < -90:
             raise Exception('!!! ERROR: invalid coordinate: dec=' + delta)
-        log.write('  |- FOV (arcsec): ra=' + str(self.alpha_border) + ' dec=' + str(self.delta_border) + '\n')
-        self.freq_border = [freq - spe_bw / 2.0, freq + spe_bw / 2.0]
-        if spe_bw > MAX_BW:
+        [fu,fd]=[pos[0]+(pix[0]-(crpix[0]-1))*res[0],pos[0]- (crpix[0]-1)*res[0]]
+        [du,dd]=[pos[1]+(pix[1]-(crpix[1]-1))*res[1],pos[1]- (crpix[1]-1)*res[1]]
+        [au,ad]=[pos[2]+(pix[2]-(crpix[2]-1))*res[2],pos[2]- (crpix[2]-1)*res[2]]
+        bw=fu - fd;
+        log.write('  |- Bandwidth : bw=' + str(bw))
+        if  bw  > MAX_BW:
             log.write('!!! WARNING: max ALMA bandwidth exceeded\n')
-        self.channels = round(spe_bw / spe_res)
-        if self.channels > MAX_CHANNELS:
+        if  pix[0] > MAX_CHANNELS:
             log.write('!!! WARNING: max ALMA channels exceeded\n')
-        self.freq_axis = np.linspace(self.freq_border[0], self.freq_border[1], self.channels)
-        log.write('  |- Spectral (MHz): center=' + str(freq) + ' bandwidth=' + str(self.freq_border) + '\n')
-        log.write('  |- Cube size: ' + str(len(self.alpha_axis)) + ' x ' + str(len(self.delta_axis)) + ' x ' + str(
-            len(self.freq_axis)) + ' \n')
-        self.band = 'NO_BAND'
+        band = 'NO_BAND'
         for bnd in band_freq:
             freqs = band_freq[bnd]
-            if self.freq_border[0] >= freqs[0] and self.freq_border[1] <= freqs[1]:
-                self.band = bnd
+            if fd >= freqs[0] and fu <= freqs[1]:
+                band = bnd
                 log.write('  |- Band: ' + bnd + '\n')
-        if self.band == 'NO_BAND':
+        if band == 'NO_BAND':
             log.write('!!! WARNING: not in a valid ALMA band\n')
-        if self.band == 'NO_BAND':
-            self.noise = 0.0001
+        if band == 'NO_BAND':
+            noise = 0.0001
         else:
-            self.noise = band_noises[self.band]
-        self.data = (
-                        np.random.random(
-                            (len(self.freq_axis), len(self.delta_axis), len(self.alpha_axis))) - 0.5 * np.ones(
-                            (len(self.freq_axis), len(self.delta_axis), len(self.alpha_axis)))) * 2 * self.noise
-        self.hdulist = fits.HDUList([self._get_cube_HDU()])
-
-
-    def get_spectrum(self, x, y):
-        """ Returns the spectrum of a (x,y) position """
-        xi = int(round((x - self.alpha_axis[0]) / (self.ang_res / DEG2ARCSEC)))
-        yi = int(round((y - self.delta_axis[0]) / (self.ang_res / DEG2ARCSEC)))
-        return self.data[:, yi, xi]
-
-
-    def _get_cube_HDU(self):
+            noise = band_noises[self.band]
+        data = (np.random.random(pix) - 0.5 * np.ones(pix)* 2 * noise
         prihdr = fits.Header()
         prihdr['AUTHOR'] = 'Astronomical SYnthetic Data Observatory'
-        prihdr['COMMENT'] = "Here's some commentary about this FITS file."
+        prihdr['COMMENT'] = name
         prihdr['SIMPLE'] = True
         # prihdr['BITPIX'] = 8
         prihdr['NAXIS'] = 4
-        prihdr['NAXIS1'] = len(self.alpha_axis)
-        prihdr['NAXIS2'] = len(self.delta_axis)
-        prihdr['NAXIS3'] = len(self.freq_axis)
-        prihdr['BMAJ'] = self.ang_res/DEG2ARCSEC
-        prihdr['BMIN'] = 2*self.ang_res/DEG2ARCSEC
+        prihdr['NAXIS1'] = pix[2]
+        prihdr['NAXIS2'] = pix[1]
+        prihdr['NAXIS3'] = pix[0]
+        prihdr['BMAJ'] = res[1]
+        prihdr['BMIN'] = res[1]
         prihdr['CTYPE1'] = 'RA---SIN'
-        apos=math.floor(len(self.alpha_axis)/2)
-        prihdr['CRVAL1'] = self.alpha_axis[apos]
-        prihdr['CDELT1'] = self.ang_res/DEG2ARCSEC
-        prihdr['CRPIX1'] = float(apos)+1.0
+        prihdr['CRVAL1'] = pos[2]
+        prihdr['CDELT1'] = res[2]
+        prihdr['CRPIX1'] = crpix[2]
         prihdr['CUNIT1'] = 'deg'
         prihdr['CTYPE2'] = 'DEC--SIN'
-        dpos=math.floor(len(self.delta_axis)/2)
-        prihdr['CRVAL2'] = self.delta_axis[dpos]
-        prihdr['CDELT2'] = self.ang_res/DEG2ARCSEC
-        prihdr['CRPIX2'] = float(dpos)+1.0
+        prihdr['CRVAL2'] = pos[1]
+        prihdr['CDELT2'] = res[1]
+        prihdr['CRPIX2'] = crpix[1]
         prihdr['CUNIT2'] = 'deg'
         prihdr['CTYPE3'] = 'FREQ'
-        fpos=0
-        prihdr['CRVAL3'] = 1000000*self.freq_axis[fpos]
-        prihdr['CDELT3'] = 1000000*self.spe_res
-        prihdr['CRPIX3'] = float(fpos)+1.0
+        prihdr['CRVAL3'] = pos[0] 
+        prihdr['CDELT3'] = res[0]
+        prihdr['CRPIX3'] = crpix[0]
         prihdr['CUNIT3'] = 'Hz'
         prihdr['CTYPE4'] = 'STOKES'
         prihdr['CRVAL4'] = 1.0
         prihdr['CDELT4'] = 1.0
         prihdr['CRPIX4'] = 1.0
-        hdu = fits.PrimaryHDU(header=prihdr)
-        hdu.data = self.data
-        return hdu
-
-    def _add_HDU(self, hdu):
-        pass
-        self.hdulist.append(hdu)
-
-    def save_fits(self, sources, filename):
-        """ Simple as that... saves the whole cube """
-        self.hdulist.writeto(filename, clobber=True)
-
-    def _updatefig(self, j):
-        """ Animate helper function """
-        self.im.set_array(self.data[j, :, :])
-        return self.im,
-
-    def animate(self, inte, rep=True):
-        """ Simple animation of the cube.
-            - inte       : time interval between frames
-            - rep[=True] : boolean to repeat the animation
-          """
-        fig = plt.figure()
-        self.im = plt.imshow(self.data[0, :, :], cmap=plt.get_cmap('jet'), vmin=self.data.min(), vmax=self.data.max(), \
-                             extent=(
-                                 self.alpha_border[0], self.alpha_border[1], self.delta_border[0],
-                                 self.delta_border[1]))
-        ani = animation.FuncAnimation(fig, self._updatefig, frames=range(len(self.freq_axis)), interval=inte, blit=True,
-                                      repeat=rep)
-        plt.show()
-
+        return spaectral.Cube(data,prihdr)
 
 class Component:
     """Abstract component model"""
@@ -488,12 +203,12 @@ class Component:
         """
         self.log = log
         self.z = z_base
-        self.rv = SPEED_OF_LIGHT / KILO * ((self.z ** 2 + 2 * self.z) / (self.z ** 2 + 2 * self.z + 2))
+        self.rv = const.c.value * ((self.z ** 2 + 2 * self.z) / (self.z ** 2 + 2 * self.z + 2))
 
     def set_radial_velocity(self, rvel):
-        """Set radial velocity rvel in km/s"""
+        """Set radial velocity rvel in m/s"""
         self.rv = rvel
-        self.z = math.sqrt((1 + self.rv * KILO / SPEED_OF_LIGHT) / (1 - self.rv * KILO / SPEED_OF_LIGHT)) - 1
+        self.z = math.sqrt((1 + self.rv/const.c.value) / (1 - self.rv / const.c.value)) - 1
 
     def info(self):
         """Print relevant information of the component"""
@@ -539,7 +254,6 @@ class IMCM(Component):
         return "mol_list = " + str(self.intens.keys()) + " @ spa_form=" + str(self.spa_form) + ", spe_form=" + str(
             self.spe_form) + ", z=" + str(self.z) + ", grad=" + str(self.z_grad)
 
-
     def project(self, cube):
         arr_code = []
         arr_mol = []
@@ -548,17 +262,17 @@ class IMCM(Component):
         arr_rad_vel = []
         arr_fwhm = []
         arr_temp = []
-        self.log.write('   --+ Generating template image\n')  # TODO More info
-        T, (ybord, xbord) = gen_surface(self.spa_form, self.alpha, self.delta, cube.alpha_axis, cube.delta_axis)
-        if isinstance(T, bool):
-            return
-        G = gen_gradient(self.z_grad, self.alpha, self.delta, cube.alpha_axis, cube.delta_axis, ybord, xbord)
-        self.log.write('   --+ Generating template line distribution\n')  #TODO More info
-        self.log.write('   --+ Loading and correcting lines\n')
+        #self.log.write('   --+ Generating template image\n')  # TODO More info
+        #T, (ybord, xbord) = gen_surface(self.spa_form, self.alpha, self.delta, cube.alpha_axis, cube.delta_axis)
+        #if isinstance(T, bool):
+        #    return
+        #G = gen_gradient(self.z_grad, self.alpha, self.delta, cube.alpha_axis, cube.delta_axis, ybord, xbord)
+        #self.log.write('   --+ Generating template line distribution\n')  #TODO More info
+        #self.log.write('   --+ Loading and correcting lines\n')
         dba = db.lineDB(self.dbpath)
         dba.connect()
-        freq_init_corr = cube.freq_border[0] / (1 + self.z)
-        freq_end_corr = cube.freq_border[1] / (1 + self.z)
+        freq_init_corr = cube.nu_axis[0] / (1 + self.z)
+        freq_end_corr = cube.nu_axis[-1] / (1 + self.z)
         counter = 0
         used = False
         for mol in self.intens:
@@ -577,14 +291,14 @@ class IMCM(Component):
                 counter += 1
                 trans_temp = lin[5]
                 temp = np.exp(-abs(trans_temp - self.temp) / self.temp) * rinte
-                if temp < 3 * cube.noise:
+                if temp < cube.noise:
                     continue
-                freq = (1 + self.z) * lin[3]  # Catalogs must be in Mhz
+                freq = (1 + self.z) * lin[3]*1000000.0  # Catalogs must be in Mhz
                 self.log.write('      |- Projecting ' + str(lin[2]) + ' (' + str(lin[1]) + ') around ' + str(
                     freq) + ' Mhz, at ' + str(temp) + ' K\n')
                 for xp in range(xbord[0], xbord[1]):
                     for yp in range(ybord[0], ybord[1]):
-                        freq = freq_correct(lin[3],self.rv + G[yp - ybord[0], xp - xbord[0]])
+                        freq = spectral.doppler(lin[3],self.rv + G[yp - ybord[0], xp - xbord[0]])
                         L, Lbord = gen_line(self.spe_form, freq, cube.freq_axis)
                         if isinstance(L, bool):
                             continue
