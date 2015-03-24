@@ -165,6 +165,9 @@ class Cube:
     A spectral cube.
     """
     def __init__(self,data,meta):
+        """ data = numpy 3d array 
+            meta = header of fits
+        """
         self.data=data
         self.meta=meta
         ra_value=float(meta['CRVAL1'])

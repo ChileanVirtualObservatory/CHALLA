@@ -70,13 +70,21 @@ class Universe:
         Returns a SpectralCube object where all the sources within the FOV and BW are projected.
 
         This function needs the following parameters:
-        - name    : name of the cube
-        - pos     : position (nu,dec,ra)
-        - pix     : pixels (nu,dec,ra)
-        - res     : resolution (nu,dec,ra)
-        - crpix   : center pixed (nu,dec,ra) from 1
+        - name      : name of the cube
+        - pos_ra    : position ra
+        - pos_dec   : position dec
+        - pos_nu    : position nu
+        - delta_ra  : resolution ra
+        - delta_dec : resolution dec
+        - delta_nu  : resolution nu
+        - pix_ra    : pixels ra
+        - pix_dec   : pixels dec
+        - pix_nu    : pixels nu
+        - crpix_ra  : center reference pixel ra
+        - crpix_dec : center reference pixel dec
+        - crpix_nu  : center reference pixel  nu
         """
-        cube = _synthetic_cube(self.log, name, pos,res,pix,crpix)
+        cube = _synthetic_cube(self.log, name, (pos_ra,pos_dec,pos_nu),(delta_ra,delta_dec,delta_nu),(pix_ra,pix_dec,pix_nu),(crpix_ra,crpix_dec,crpix_nu))
         for src in self.sources:
             self.log.write('*** Source: ' + src + '\n')
             self.sources[src].project(cube)

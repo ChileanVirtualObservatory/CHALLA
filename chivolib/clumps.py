@@ -1,6 +1,6 @@
 import numpy as np
 from statistics import Gaussian
-from scipy.optimize import leastsq
+from scipy.optimize import root
 import copy
 import matplotlib.pyplot as plt
 import sys
@@ -30,9 +30,9 @@ def _gc_chi2(model, y, X,resv,params,xmax,ymax):
    G=Gaussian(to_gauss(model),True)
    wmod=(1,0,model[2],model[3],model[4],0,wd[2],wd[1],wd[0],0,0)
    W=Gaussian(to_gauss(wmod),True)
-   yi_fit=G.evaluate(X,False)
+   yi_fit=G.evaluate(X)
    wi=W.evaluate(X)
-   t1=np.power(y-(yi_fit+model[1]),2)*wi
+   t1=np.square(y-yi_fit)*wi
    t2=np.exp(yi_fit-y)
    t3=np.square(model[2]-xmax[2])/np.square(resv[2]) + np.square(model[3]-xmax[1])/np.square(resv[1]) + np.square(model[4]-xmax[0])/np.square(resv[0])
    t4=np.square(model[0]+model[1] - ymax)
@@ -40,7 +40,7 @@ def _gc_chi2(model, y, X,resv,params,xmax,ymax):
    sc=params['sc']
    sa=params['sa']
    val=t1 + s0*t2 + sc*t3 + sa*t4
-   return np.sqrt(val)
+   return val
 
 def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
    plt.ion() 
@@ -62,9 +62,10 @@ def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
    print (n0,n1,d0,d1,r0,r1)
    print "p0 = ", p0
    lss=cube.data[n0:n1+1,d0:d1+1,r0:r1+1]
-   res= leastsq(_gc_chi2, p0, args=(lss.ravel(),X,resv,params,xmax,ymax)) 
+   #res= leastsq(_gc_chi2, p0, args=(lss.ravel(),X,resv,params,xmax,ymax)) 
+   res = root(_gc_chi2,p0,method='lm',args=(lss.ravel(),X,resv,params,xmax,ymax))
    print "clump =", res[0]
-   G=Gaussian(to_gauss(res[0]),True)
+   G=Gaussian(to_gauss(res.x),True)
    M=G.evaluate(X,False).reshape((n1-n0+1,d1-d0+1,r1-r0+1))
    ma=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=0)
    spe=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=(1,2))
@@ -91,15 +92,15 @@ def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
    plt.plot(spe2,"r")
    plt.show() 
    plt.pause(0.01)
-   return res[0]
+   return res.x
 
 
 def gc_default_params():
    retval=dict()
    retval['threshold']=0.000001
-   retval['few_deltas']=2
-   retval['weight_deltas']=7
-   retval['s0']=1.0
+   retval['few_deltas']=5
+   retval['weight_deltas']=40
+   retval['s0']=100
    retval['sc']=1.0
    retval['sa']=1.0
 

@@ -85,12 +85,8 @@ class Gaussian:
        C[2]=X[2] - self.mu[2]
        V=C*(self.Lambda.dot(C))
        quad=V.sum(axis=0)
-       #print "quad"
-       #print quad
        v=np.exp(-quad/2)
-       retval=self.a*v/v.max()
-       #print "retval"
-       #print retval
+       retval=self.a*v #/v.max()
        if consider_b:
           retval= retval + self.b
        return retval
