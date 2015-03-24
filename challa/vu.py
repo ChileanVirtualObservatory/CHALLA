@@ -3,6 +3,7 @@ import numpy as np
 import pylab as plt
 import matplotlib.animation as animation
 from astropy.io import fits
+from astropy  import constants as const
 from scipy import pi, sqrt, exp
 import math
 import db
@@ -58,9 +59,9 @@ class Universe:
         - pos     : position (nu,dec,ra)
         - pix     : pixels (nu,dec,ra)
         - res     : resolution (nu,dec,ra)
-        - crpix   : cénter pixed (nu,dec,ra) from 1
+        - crpix   : center pixed (nu,dec,ra) from 1
         """
-        cube = synthetic_cube(self.log, name, pos,res,pix,crpix)
+        acube = synthetic_cube(self.log, name, pos,res,pix,crpix)
         for src in self.sources:
             self.log.write('*** Source: ' + src + '\n')
             self.sources[src].project(cube)
@@ -125,24 +126,24 @@ def synthetic_cube(log, name,pos,res,pix,crpix, band_freq=ALMA_bands,
         Obligatory Parameters:
         - log	  : descriptor of a log file
         - name    : name of the cube 
-        - pos     : position (nu,dec,ra)
-        - pix     : pixels (nu,dec,ra)
-        - res     : resolution (nu,dec,ra)
-        - crpix   : cénter pixed (nu,dec,ra) from 1
+        - pos     : position (ra,dec,nu)
+        - pix     : pixels (ra,dec,nu)
+        - res     : resolution (ra,dec,nu)
+        - crpix   : center pixed (ra,dec,nu) from 1
                 
         Optional Parameters:
         - band_freq   : a diccionary of frequency ranges for the bands (key = band_name, value = (lower,upper)) (IN MHZ!!!)
         - band_noises : a dictionary of noise levels for each band (key = band_name, value = noise)
         """
         log.write('[*] Generating Synthetic Cube ' + name + '\n')
-        log.write('  |- Coordinates : ra=' + str(pos[2]) + '[deg] dec=' + str(pos[1]) + '[deg] nu='+str(pos[0])+'[Hz] \n')
+        log.write('  |- Coordinates : ra=' + str(pos[0]) + '[deg] dec=' + str(pos[1]) + '[deg] nu='+str(pos[2])+'[Hz] \n')
         if alpha > 90 or alpha < -90:
             raise Exception('!!! ERROR: invalid coordinate: ra=' + alpha)
         if delta > 90 or delta < -90:
             raise Exception('!!! ERROR: invalid coordinate: dec=' + delta)
-        [fu,fd]=[pos[0]+(pix[0]-(crpix[0]-1))*res[0],pos[0]- (crpix[0]-1)*res[0]]
+        [fu,fd]=[pos[2]+(pix[2]-(crpix[2]-1))*res[2],pos[2]- (crpix[2]-1)*res[2]]
         [du,dd]=[pos[1]+(pix[1]-(crpix[1]-1))*res[1],pos[1]- (crpix[1]-1)*res[1]]
-        [au,ad]=[pos[2]+(pix[2]-(crpix[2]-1))*res[2],pos[2]- (crpix[2]-1)*res[2]]
+        [au,ad]=[pos[0]+(pix[2]-(crpix[0]-1))*res[0],pos[0]- (crpix[0]-1)*res[0]]
         bw=fu - fd;
         log.write('  |- Bandwidth : bw=' + str(bw))
         if  bw  > MAX_BW:
@@ -161,7 +162,7 @@ def synthetic_cube(log, name,pos,res,pix,crpix, band_freq=ALMA_bands,
             noise = 0.0001
         else:
             noise = band_noises[self.band]
-        data = (np.random.random(pix) - 0.5 * np.ones(pix)* 2 * noise
+        data = (np.random.random(pix) - 0.5 * np.ones(pix))* 2 * noise
         prihdr = fits.Header()
         prihdr['AUTHOR'] = 'Astronomical SYnthetic Data Observatory'
         prihdr['COMMENT'] = name
@@ -174,9 +175,9 @@ def synthetic_cube(log, name,pos,res,pix,crpix, band_freq=ALMA_bands,
         prihdr['BMAJ'] = res[1]
         prihdr['BMIN'] = res[1]
         prihdr['CTYPE1'] = 'RA---SIN'
-        prihdr['CRVAL1'] = pos[2]
-        prihdr['CDELT1'] = res[2]
-        prihdr['CRPIX1'] = crpix[2]
+        prihdr['CRVAL1'] = pos[0]
+        prihdr['CDELT1'] = res[0]
+        prihdr['CRPIX1'] = crpix[0]
         prihdr['CUNIT1'] = 'deg'
         prihdr['CTYPE2'] = 'DEC--SIN'
         prihdr['CRVAL2'] = pos[1]
@@ -184,9 +185,9 @@ def synthetic_cube(log, name,pos,res,pix,crpix, band_freq=ALMA_bands,
         prihdr['CRPIX2'] = crpix[1]
         prihdr['CUNIT2'] = 'deg'
         prihdr['CTYPE3'] = 'FREQ'
-        prihdr['CRVAL3'] = pos[0] 
-        prihdr['CDELT3'] = res[0]
-        prihdr['CRPIX3'] = crpix[0]
+        prihdr['CRVAL3'] = pos[2] 
+        prihdr['CDELT3'] = res[2]
+        prihdr['CRPIX3'] = crpix[2]
         prihdr['CUNIT3'] = 'Hz'
         prihdr['CTYPE4'] = 'STOKES'
         prihdr['CRVAL4'] = 1.0
@@ -228,11 +229,10 @@ class Component:
 class IMCM(Component):
     """ Interstellar Molecular Cloud Model """
 
-    def __init__(self, log, dbpath, mol_list, temp, spa_form, spe_form, z_grad, z_base=0.0, abun_max=10 ** -5,
+    def __init__(self, log, dbpath, mol_list, temp, form, z_grad, z_base=0.0, abun_max=10 ** -5,
                  abun_min=10 ** -6, abun_CO=1.0, iso_abun=default_iso_abundance):
         Component.__init__(self, log, z_base)
-        self.spa_form = spa_form
-        self.spe_form = spe_form
+        self.form = form
         self.z_grad = z_grad
         self.dbpath = dbpath
         self.temp = temp
@@ -251,8 +251,7 @@ class IMCM(Component):
         self.intens = intens;
 
     def info(self):
-        return "mol_list = " + str(self.intens.keys()) + " @ spa_form=" + str(self.spa_form) + ", spe_form=" + str(
-            self.spe_form) + ", z=" + str(self.z) + ", grad=" + str(self.z_grad)
+        return "mol_list = " + str(self.intens.keys()) + " @ form=" + str(self.form) + ", z=" + str(self.z) + ", grad=" + str(self.z_grad)
 
     def project(self, cube):
         arr_code = []
@@ -278,9 +277,7 @@ class IMCM(Component):
         for mol in self.intens:
             # For each molecule specified in the dictionary
             # load its spectral lines
-
-            linlist = dba.getSpeciesLines(mol, freq_init_corr,
-                                          freq_end_corr)  # Selected spectral lines for this molecule
+            linlist = dba.getSpeciesLines(mol, freq_init_corr,freq_end_corr)  # Selected spectral lines for this molecule
             rinte = inten_values[0]
             for j in range(len(inten_group)):  # TODO baaad python...
                 if mol in inten_group[j]:
@@ -296,15 +293,19 @@ class IMCM(Component):
                 freq = (1 + self.z) * lin[3]*1000000.0  # Catalogs must be in Mhz
                 self.log.write('      |- Projecting ' + str(lin[2]) + ' (' + str(lin[1]) + ') around ' + str(
                     freq) + ' Mhz, at ' + str(temp) + ' K\n')
-                for xp in range(xbord[0], xbord[1]):
-                    for yp in range(ybord[0], ybord[1]):
-                        freq = spectral.doppler(lin[3],self.rv + G[yp - ybord[0], xp - xbord[0]])
-                        L, Lbord = gen_line(self.spe_form, freq, cube.freq_axis)
-                        if isinstance(L, bool):
-                            continue
-                        cube.data[Lbord[0]:Lbord[1] + 1, yp, xp] = cube.data[Lbord[0]:Lbord[1] + 1, yp, xp] + T[yp - ybord[0], xp - xbord[0]] * temp* L
-                        used = True
-
+                (X,(n0,n1,d0,d1,r0,r1)) = cube.feature_space(xmax,2*params['weight_deltas']*resv)
+                par=[temp,0,self.alpha,self.delta,freq,self.form[3],form[0],form[1],form[2],z_grad[0],z_grad[1]]
+                G=Gaussian(clumps.to_gauss(par),True)
+                M=G.evaluate(X,False).reshape((n1-n0+1,d1-d0+1,r1-r0+1))
+                cube.data[n0:n1+1,d0:d1+1,r0:r1+1] += M
+                #for xp in range(xbord[0], xbord[1]):
+                #    for yp in range(ybord[0], ybord[1]):
+                #        freq = spectral.doppler(lin[3],self.rv + G[yp - ybord[0], xp - xbord[0]])
+                #        L, Lbord = gen_line(self.spe_form, freq, cube.freq_axis)
+                #        if isinstance(L, bool):
+                #            continue
+                #        cube.data[Lbord[0]:Lbord[1] + 1, yp, xp] = cube.data[Lbord[0]:Lbord[1] + 1, yp, xp] + T[yp - ybord[0], xp - xbord[0]] * temp* L
+                used = True
                 arr_code.append(self.comp_name + '-r' + str(self.alpha) + '-d' + str(self.delta) + "-l" + str(counter))
                 arr_mol.append(mol)
                 arr_temp.append(temp)

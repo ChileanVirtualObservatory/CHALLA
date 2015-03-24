@@ -3,6 +3,7 @@ import copy
 
 from astropy import constants as const
 from astropy import units as u
+from astropy.io import fits 
 
 # ## Helper constants ###
 #SPEED_OF_LIGHT = 299792458.0
@@ -19,7 +20,6 @@ def fwhm2sigma(freq,fwhm):
 def doppler(freq,rv):
     freq_new = math.sqrt((1 + rv / const.c.value) / (1 - rv / const.c.value)) * freq
     return freq_new
-
 
 
 
@@ -87,7 +87,6 @@ def doppler(freq,rv):
 #    Yc = delta_mesh.flatten() - delta * np.ones(len(alpha_axis) * len(delta_axis))
 #    XX = (Xc) * math.cos(-theta) - (Yc) * math.sin(-theta)
 #    YY = (Xc) * math.sin(-theta) + (Yc) * math.cos(-theta)
-#    if stype == 'normal':
 #        u = (XX / sx) ** 2 + (YY / sy) ** 2
 #        sol = sx * sy * np.exp(-u / 2) / (2 * math.pi)
 #    elif stype == 'exp':
@@ -187,7 +186,7 @@ class Cube:
         self.nu_axis=np.linspace(nu_value-nu_cpix*self.nu_delta,nu_value+(nu_elms-nu_cpix)*self.nu_delta, num=nu_elms)
         hdu = fits.PrimaryHDU(header=self.meta)
         hdu.data = self.data
-        self.hdulist = fits.HDUList([self._get_cube_HDU()])
+        self.hdulist = fits.HDUList([hdu])
 
     def max(self):
         index=np.unravel_index(self.data.argmax(),self.data.shape)

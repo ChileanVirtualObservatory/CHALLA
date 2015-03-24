@@ -88,7 +88,7 @@ class Gaussian:
        #print "quad"
        #print quad
        v=np.exp(-quad/2)
-       retval=self.a*v
+       retval=self.a*v/v.max()
        #print "retval"
        #print retval
        if consider_b:

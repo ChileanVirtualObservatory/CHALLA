@@ -17,7 +17,7 @@ import pickle
 #KILO = 1000
 
 class IMCConf:
-   def  __init__(self,number,dbpath="ASYDO",mol_list="all",mol_prob=0.3,x_pos=0.0,y_pos=0.0,f_pos=300000,spa_pix=5,spe_pix=100,fov=500,bw=2000,rvel=(150,1000),temp=(50,500),semiaxis=(10,300),fwhm=(10,50),angle=(0,math.pi),rot=(50,500),curtosis=(-5,5)):
+   def  __init__(self,number,dbpath="ASYDO",mol_list="all",mol_prob=0.3,x_pos=0.0,y_pos=0.0,f_pos=300000,spa_pix=5,spe_pix=100,fov=500,bw=2000,rvel=(150,1000),temp=(50,500),semiaxis=(10,300),fwhm=(10,50),angle=(0,math.pi),z_x=(-10,10),z_y=(-10,10)):
       self.rvel=rvel
       self.number=number
       self.mol_prob=mol_prob
@@ -33,9 +33,11 @@ class IMCConf:
       self.temp=temp
       self.semiaxis=semiaxis
       self.fwhm=fwhm
-      self.rot=rot
+      #self.rot=rot
       self.angle=angle
-      self.curtosis=curtosis
+      #self.curtosis=curtosis
+      self.z_x=z_x
+      self.z_y=z_x
       self.force_list=list()
       self.ban_list=list()
    
@@ -54,9 +56,11 @@ class IMCConf:
       self.temp    =template.temp
       self.semiaxis=template.semiaxis
       self.fwhm    =template.fwhm
-      self.rot     =template.rot
+      #self.rot     =template.rot
       self.angle   =template.angle
-      self.curtosis=template.curtosis
+      self.z_y     =template.z_y
+      self.z_x     =template.z_x
+      #self.curtosis=template.curtosis
       self.force_list=copy.deepcopy(template.force_list)
       self.ban_list  =copy.deepcopy(template.ban_list)
 
@@ -105,15 +109,15 @@ def unitary_IMC_cube(conf):
        s_x=rget(conf.semiaxis)
        s_y=rget(conf.semiaxis)
        angle=rget(conf.angle)
-       rot=rget(conf.rot)
-       fw=rget(conf.fwhm)
-       curt=rget(conf.curtosis)
+       s_z=rget(conf.fwhm)
+       #rot=rget(conf.rot)
+       #curt=rget(conf.curtosis)
        mms=""
        for mol in molist:
           if mms!="":
              mms+=","
           mms+=str(mol[0])
-       model=IMCM(log,conf.dbpath,mms,temp,('normal',s_x,s_y,angle),('skew',fw,curt),('linear',angle,rot))
+       model=IMCM(log,conf.dbpath,mms,temp,(s_x,s_y,s_z,angle),(z_x,z_y))
        model.set_radial_velocity(rv)
        univ.add_component('AutoGenCube-'+str(conf.number),model)
     fov=rget(conf.fov)

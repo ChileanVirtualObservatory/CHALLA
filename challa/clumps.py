@@ -1,12 +1,12 @@
 import numpy as np
-from functions import Gaussian
+from statistics import Gaussian
 from scipy.optimize import leastsq
 import copy
 import matplotlib.pyplot as plt
 import sys
 # Model: a,b,x0,y0,v0,dvx,dvy,Dx,Dy,Dv,phi
 
-def clump2gauss((a,b,alp0,del0,v0,phi,Dalp,Ddel,Dv,dvalp,dvdel)):
+def to_gauss((a,b,alp0,del0,v0,phi,Dalp,Ddel,Dv,dvalp,dvdel)):
    sphi2=np.square(np.sin(phi))
    cphi2=np.square(np.cos(phi))
    s2phi=np.sin(2*phi)
@@ -28,10 +28,10 @@ def gc_chi2(model, y, X,resv,params,xmax,ymax):
    sys.stdout.write('.')
    sys.stdout.flush()
    wd=params['weight_deltas']*resv
-   G=Gaussian(clump2gauss(model),True)
+   G=Gaussian(to_gauss(model),True)
    wmod=(1,0,model[2],model[3],model[4],0,wd[2],wd[1],wd[0],0,0)
-   W=Gaussian(clump2gauss(wmod),True)
-   yi_fit=G.evaluate(X)
+   W=Gaussian(to_gauss(wmod),True)
+   yi_fit=G.evaluate(X,False)
    #print len(yi_fit)
    #plt.plot(y[6100000:],"r")
    #plt.plot(yi_fit[6100000:],"b")
@@ -44,7 +44,7 @@ def gc_chi2(model, y, X,resv,params,xmax,ymax):
    #print y.shape, yi_fit.shape
    #print X.shape
    #print y.shape,yi_fit.shape
-   t1=np.power(y-yi_fit,2)*wi
+   t1=np.power(y-(yi_fit+model[1]),2)*wi
    t2=np.exp(yi_fit-y)
    t3=np.square(model[2]-xmax[2])/np.square(resv[2]) + np.square(model[3]-xmax[1])/np.square(resv[1]) + np.square(model[4]-xmax[0])/np.square(resv[0])
    t4=np.square(model[0]+model[1] - ymax)
@@ -81,7 +81,7 @@ def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
    #print lss.shape
    res= leastsq(gc_chi2, p0, args=(lss.ravel(),X,resv,params,xmax,ymax)) 
    print "clump =", res[0]
-   G=Gaussian(clump2gauss(res[0]),True)
+   G=Gaussian(to_gauss(res[0]),True)
    M=G.evaluate(X,False).reshape((n1-n0+1,d1-d0+1,r1-r0+1))
    #print "M"
    #clum1=M.sum(axis=1)
@@ -121,8 +121,8 @@ def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
 def gc_default_params():
    retval=dict()
    retval['threshold']=0.000001
-   retval['few_deltas']=1
-   retval['weight_deltas']=5
+   retval['few_deltas']=2
+   retval['weight_deltas']=7
    retval['s0']=1.0
    retval['sc']=1.0
    retval['sa']=1.0

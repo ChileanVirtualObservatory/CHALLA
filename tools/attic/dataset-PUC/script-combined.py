@@ -13,17 +13,19 @@ dbpath="../ASYDO"
 univ=vu.Universe(log)
 for mol in molist:
    univ.create_source('combined-'+mol,0.0,0.0)
-   s_x=random.uniform(50, 150)
-   s_y=random.uniform(40, 100)
-   rot=random.uniform(10, 150)
-   s_f=random.uniform(50, 120)
-   curt=random.uniform(-3, 3)
+   s_x=random.uniform(0.2, 1)
+   s_y=random.uniform(0.2, 1)
+   s_f=random.uniform(2000, 8000)
+   z_x=random.uniform(-10, 10)
+   z_y=random.uniform(-10, 10)
+   #curt=random.uniform(-3, 3)
    angle=random.uniform(0,math.pi)
-   model=vu.IMCM(log,dbpath,mol,temp,('normal',s_x,s_y,angle),('skew',s_f,curt),('linear',angle,rot))
+   model=vu.IMCM(log,dbpath,mol,temp,(s_x,s_y,s_f,angle),(z_x,z_y))
    model.set_radial_velocity(rvel)
    univ.add_component('combined-'+mol,model)
 for i in range(49):
-   fcenter=(276 + 2*i)*1000
-   cube=univ.gen_cube('combined',0.0,0.0,fcenter,10,800,2,2000)
+   fcenter=(276 + 2*i)*1000 
+    name, pos,res,pix,crpix
+   cube=univ.gen_cube('combined',(0.0,0.0,fcenter))
    univ.save_cube(cube,'combined-'+str(fcenter)+'.fits')
 
