@@ -100,7 +100,7 @@ def gc_default_params():
    retval['threshold']=0.000001
    retval['few_deltas']=5
    retval['weight_deltas']=40
-   retval['s0']=100
+   retval['s0']=1.0
    retval['sc']=1.0
    retval['sa']=1.0
 
