@@ -23,8 +23,7 @@ def to_gauss((a,b,alp0,del0,v0,phi,Dalp,Ddel,Dv,dvalp,dvdel)):
    mu=[v0,del0,alp0]
    return (a,b,mu,L)
 
-def gc_chi2(model, y, X,resv,params,xmax,ymax):
-   #print "it", model
+def _gc_chi2(model, y, X,resv,params,xmax,ymax):
    sys.stdout.write('.')
    sys.stdout.flush()
    wd=params['weight_deltas']*resv
@@ -32,18 +31,7 @@ def gc_chi2(model, y, X,resv,params,xmax,ymax):
    wmod=(1,0,model[2],model[3],model[4],0,wd[2],wd[1],wd[0],0,0)
    W=Gaussian(to_gauss(wmod),True)
    yi_fit=G.evaluate(X,False)
-   #print len(yi_fit)
-   #plt.plot(y[6100000:],"r")
-   #plt.plot(yi_fit[6100000:],"b")
-   #plt.show()
-   #print "model"
-   #print model
-   #print "yifit"
-   #print yi_fit
    wi=W.evaluate(X)
-   #print y.shape, yi_fit.shape
-   #print X.shape
-   #print y.shape,yi_fit.shape
    t1=np.power(y-(yi_fit+model[1]),2)*wi
    t2=np.exp(yi_fit-y)
    t3=np.square(model[2]-xmax[2])/np.square(resv[2]) + np.square(model[3]-xmax[1])/np.square(resv[1]) + np.square(model[4]-xmax[0])/np.square(resv[0])
@@ -72,26 +60,15 @@ def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
    (X,(n0,n1,d0,d1,r0,r1)) = cube.feature_space(xmax,2*params['weight_deltas']*resv) 
    p0=[a,b,alp0,del0,v0,phi,Dalp,Ddel,Dv,dvalp,dvdel]
    print (n0,n1,d0,d1,r0,r1)
-   #print "leastsq params"
    print "p0 = ", p0
-   #print y
-   #print X
-   #print cube.data.shape
    lss=cube.data[n0:n1+1,d0:d1+1,r0:r1+1]
-   #print lss.shape
-   res= leastsq(gc_chi2, p0, args=(lss.ravel(),X,resv,params,xmax,ymax)) 
+   res= leastsq(_gc_chi2, p0, args=(lss.ravel(),X,resv,params,xmax,ymax)) 
    print "clump =", res[0]
    G=Gaussian(to_gauss(res[0]),True)
    M=G.evaluate(X,False).reshape((n1-n0+1,d1-d0+1,r1-r0+1))
-   #print "M"
-   #clum1=M.sum(axis=1)
-   #plt.imshow(clum1)
-   #plt.show()
-   #print M.max()
    ma=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=0)
    spe=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=(1,2))
    prof=M.sum(axis=0)
-   #prof2=M.sum(axis=(1,2))
    vmin=ma.min()
    vmax=ma.max()
    plt.clf() 
@@ -99,7 +76,6 @@ def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
    plt.imshow(ma,vmin=vmin,vmax=vmax)
    plt.subplot(2, 3, 3)
    plt.imshow(prof)
-   #plt.plot(prof2)
    plt.subplot(2, 3, 2)
    cube.data[n0:n1+1,d0:d1+1,r0:r1+1] -= M
    syn[n0:n1+1,d0:d1+1,r0:r1+1] += M
@@ -134,9 +110,6 @@ def gauss_clumps(orig_cube,params):
    syn=np.empty_like(cube.data)
    C=[]
    stop=False
-   #print cube.meta['CDELT3']
-   #print cube.meta['CRPIX3']
-   #print cube.meta['CRVAL3']
    norm=cube.data.mean()
    print "Initial Norm", norm
    while not stop:

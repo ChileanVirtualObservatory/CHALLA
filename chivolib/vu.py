@@ -8,7 +8,8 @@ from scipy import pi, sqrt, exp
 import math
 import db
 from scipy.special import erf
-
+from astropy import units as u
+from common import *
 
 # ## ALMA Specific Constants ###
 MAX_CHANNELS = 9000
@@ -36,12 +37,14 @@ class Universe:
         """
         self.log = log
         self.sources = dict()
-
-    def create_source(self, name, alpha, delta):
+    
+    @u.quantity_input(ra=u.deg)
+    @u.quantity_input(dec=u.deg)
+    def create_source(self, name, ra, dec):
         """
-        A source needs a name and a spatial position (alpha,delta).
+        A source needs a name and a spatial position (ra,dec).
         """
-        self.sources[name] = Source(self.log, name, alpha, delta)
+        self.sources[name] = _Source(self.log, name, ra, dec)
 
     def add_component(self, source_name, model):
         """
@@ -50,7 +53,19 @@ class Universe:
         """
         self.sources[source_name].add_component(model)
 
-    def gen_cube(self, name, pos,res,pix,crpix ):
+    @u.quantity_input(pos_ra=u.deg)
+    @u.quantity_input(pos_dec=u.deg)
+    @u.quantity_input(pos_nu=u.MHz)
+    @u.quantity_input(delta_ra=u.deg/u.pix)
+    @u.quantity_input(delta_dec=u.deg/u.pix)
+    @u.quantity_input(delta_nu=u.MHz/u.pix)
+    @u.quantity_input(pix_ra=u.pix)
+    @u.quantity_input(pix_dec=u.pix)
+    @u.quantity_input(pix_nu=u.pix)
+    @u.quantity_input(crpix_ra=u.pix)
+    @u.quantity_input(crpix_dec=u.pix)
+    @u.quantity_input(crpix_nu=u.pix)
+    def gen_cube(self, name, pos_ra,pos_dec,pos_nu,delta_ra,delta_dec,delta_nu,pix_ra,pix_dec,pix_nu,crpix_ra,crpix_dec,crpix_nu):
         """
         Returns a SpectralCube object where all the sources within the FOV and BW are projected.
 
@@ -61,7 +76,7 @@ class Universe:
         - res     : resolution (nu,dec,ra)
         - crpix   : center pixed (nu,dec,ra) from 1
         """
-        acube = synthetic_cube(self.log, name, pos,res,pix,crpix)
+        cube = _synthetic_cube(self.log, name, pos,res,pix,crpix)
         for src in self.sources:
             self.log.write('*** Source: ' + src + '\n')
             self.sources[src].project(cube)
@@ -82,7 +97,7 @@ class Universe:
         return self.sources.remove(name)
 
 
-class Source:
+class _Source:
     """
     A generic source of electromagnetic waves with several components.
     """
@@ -120,7 +135,7 @@ class Source:
 
 
 
-def synthetic_cube(log, name,pos,res,pix,crpix, band_freq=ALMA_bands,
+def _synthetic_cube(log, name,pos,res,pix,crpix, band_freq=ALMA_bands,
                  band_noises=ALMA_noises):
         """ 
         Obligatory Parameters:
@@ -290,9 +305,9 @@ class IMCM(Component):
                 temp = np.exp(-abs(trans_temp - self.temp) / self.temp) * rinte
                 if temp < cube.noise:
                     continue
-                freq = (1 + self.z) * lin[3]*1000000.0  # Catalogs must be in Mhz
+                freq = (1 + self.z) * lin[3]*1000000.0  # Catalogs are in Mhz
                 self.log.write('      |- Projecting ' + str(lin[2]) + ' (' + str(lin[1]) + ') around ' + str(
-                    freq) + ' Mhz, at ' + str(temp) + ' K\n')
+                    freq/1000000) + ' Mhz, at ' + str(temp) + ' K\n')
                 (X,(n0,n1,d0,d1,r0,r1)) = cube.feature_space(xmax,2*params['weight_deltas']*resv)
                 par=[temp,0,self.alpha,self.delta,freq,self.form[3],form[0],form[1],form[2],z_grad[0],z_grad[1]]
                 G=Gaussian(clumps.to_gauss(par),True)

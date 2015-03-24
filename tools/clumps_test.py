@@ -7,9 +7,6 @@ from challa.spectral import Cube
 global M
 global model
 
-def f1():
-   clumps._eval(M,model)
-
 ws.import_file("fits/combined-278000.fits")
 #ws.import_file("fits/calibrated.ms.image.spectrum.J113740.6-010454.spw0.image.fits")
 #ws.import_file("fits/calibrated.ms.line.spw0.source15.image.fits")
