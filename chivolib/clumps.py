@@ -64,7 +64,7 @@ def _modified_chi_leastsq(cube,params,ymax,xmax,syn):
    lss=cube.data[n0:n1+1,d0:d1+1,r0:r1+1]
    #res= leastsq(_gc_chi2, p0, args=(lss.ravel(),X,resv,params,xmax,ymax)) 
    res = root(_gc_chi2,p0,method='lm',args=(lss.ravel(),X,resv,params,xmax,ymax))
-   print "clump =", res[0]
+   print "clump =", res.x
    G=Gaussian(to_gauss(res.x),True)
    M=G.evaluate(X,False).reshape((n1-n0+1,d1-d0+1,r1-r0+1))
    ma=cube.data[n0:n1+1,d0:d1+1,r0:r1+1].sum(axis=0)
