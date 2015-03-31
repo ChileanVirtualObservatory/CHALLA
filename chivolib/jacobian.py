@@ -8,10 +8,28 @@ from sympy import *
 # Yv array with intesity values
 # w array with weights values
 # Y gaussian function as symbolic expression
-def chiJacobian(Xv,Yv,w,Y):
-	s0 = 1
-	sc = 1
-	sa = 1
+def chiJacobian(Xv,Yv,w,s0,sc,sa):
+        # Parameters which define a Gaussian clump
+        (a, b, x0, y0, v0, phi, Dx, Dy, Dv, dvx, dvy) = symbols('a b x0 y0 v0 phi Dx Dy Dv dvx dvy')
+
+        # Variables of intensity Gaussian function
+        (x, y, v) = symbols('x y v')
+
+        # Precision Matrix
+        Lambda = np.array([
+	   [cos(phi)**2/Dx**2 + sin(phi)**2/Dy**2 + dvx**2/Dv**2, -sin(2*phi)/(2*Dx**2) + sin(2*phi)/(2*Dy**2) + dvx*dvy/Dv**2, -dvx/Dv**2],
+	   [-sin(2*phi)/(2*Dx**2) + sin(2*phi)/(2*Dy**2) + dvx*dvy/Dv**2, sin(phi)**2/Dx**2 + cos(phi)**2/Dy**2 + dvy**2/Dv**2, -dvy/Dv**2],
+	   [-dvx/Dv**2, -dvy/Dv**2, 1/Dv**2]])
+
+        # x-mu vector
+        v = np.array([x-x0, y-y0, v-v0])
+
+        # Gaussian function
+        Y = a * exp(-0.5*np.dot(v,np.dot(Lambda,v))) + b
+
+	#s0 = 1
+	#sc = 1
+	#sa = 1
 	nf = Xv.size - 11
 	ymax = max(Yv)
 	# Jacobian of Y (parameters)
@@ -24,7 +42,7 @@ def chiJacobian(Xv,Yv,w,Y):
 		Yfit = Y.subs(x,xv).subs(y,yv).subs(v,vv)
 		for j in range(11):
 			# Evaluates derivative respect to j-variable
-			aux = Jy[j].subs(x,xv).subs.(y,yv).subs(v,vv) 
+			aux = Jy[j].subs(x,xv).subs(y,yv).subs(v,vv) 
 			chiJ[j] += -2*w[i]*(Y[i]-Yfit)*aux + s0*np.exp(Yfit-Y[i])*aux
 
 	# Sum extra terms for a and b derivatives
@@ -33,25 +51,7 @@ def chiJacobian(Xv,Yv,w,Y):
 	chiJ[1] += 2*sa*(a+b-Ymax)
 	return chiJ
 
-
-# Parameters which define a Gaussian clump
-(a, b, x0, y0, v0, phi, Dx, Dy, Dv, dvx, dvy) = symbols('a b x0 y0 v0 phi Dx Dy Dv dvx dvy')
-
-# Variables of intensity Gaussian function
-(x, y, v) = symbols('x y v')
-
-# Precision Matrix
-Lambda = np.array([
-	[cos(phi)**2/Dx**2 + sin(phi)**2/Dy**2 + dvx**2/Dv**2, -sin(2*phi)/(2*Dx**2) + sin(2*phi)/(2*Dy**2) + dvx*dvy/Dv**2, -dvx/Dv**2],
-	[-sin(2*phi)/(2*Dx**2) + sin(2*phi)/(2*Dy**2) + dvx*dvy/Dv**2, sin(phi)**2/Dx**2 + cos(phi)**2/Dy**2 + dvy**2/Dv**2, -dvy/Dv**2],
-	[-dvx/Dv**2, -dvy/Dv**2, 1/Dv**2]])
-
-# x-mu vector
-v = np.array([x-x0, y-y0, v-v0])
-
-# Gaussian function
-Y = a * exp(-0.5*np.dot(v,np.dot(Lambda,v))) + b
-
+print Y
 # call chiJacobian() here...
 
 
