@@ -92,16 +92,13 @@ class GaussClumpModel:
       # Gaussian function
       self.model  = a * exp(-0.5*np.dot(u,np.dot(self.Lambda,u))) + b
       self.params = params
+      self.fitfunc = np.vectorize(lambdify((x,y,v,a, b, x0, y0, v0, phi, Dx, Dy, Dv, dvx, dvy),self.model))
 
-   def clump(self,features):
-       #TODO
-       pass
+   def clump_func(self,features):
+       ff=lambda par: fv(features[0],features[1],featues[2],par[0],par[1],par[2],par[3],par[4],par[5],par[6],par[7],par[8],par[9],par[10])
+       return ff
 
    def chi2(self,features,values,w):
-       #TODO
-       pass
-   
-   def jac(self,features,values,w):
        #TODO
        pass
    
@@ -114,6 +111,7 @@ class GaussClumpModel:
 def next_clump(cube,syn,factory,params):
    # Non-blocking plot 
    plt.ion() 
+   plt.clf() 
    
    (value_max,feature_max) = cube.max()
    a=value_max
@@ -137,65 +135,76 @@ def next_clump(cube,syn,factory,params):
   
    # Compute the weight vector and the feature space
    w_sigmas=params['weight_deltas']*params['res_vect'] # several times the resolution
-   (features,(v_lb,v_ub,y_lb,y_ub,x_lb,x_ub)) = cube.feature_space(feature_max,2*w_sigmas) 
+   (features,sc_index) = cube.feature_space(feature_max,2*w_sigmas) 
    w_shape=(1,0,x0,y0,v0,0,w_sigmas[2],w_sigmas[1],w_sigmas[0],0,0)
-   sym=factory.clump(features)
-   w=factory.eval(sym,w_shape)
-
+   w_func=factory.clump_func(features)
+   w=w_func(w_shape)
+ 
+   #Plot current subcube
+   plt.subplot(2, 3, 1)
+   plt.imshow(cube.subcube_stack(sc_index))
    # Compile first guess
    guess=[a,b,x0,y0,v0,phi,sx,sy,sv,dvalp,dvdel]
 
    # Unravel the values
-   lss=cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1]
-   values=lss.ravel()
+   values=cube.unravel(sc_index)
+   #data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1]
+   #values=lss.ravel()
    
    # Construct the chi2 and chi_func symbolic expressions  
-   chi2=factory.chi2(features,values,w)
-   chi2_func=lambda shape: factory.eval(chi2,shape)
+   chi2_func,jaco_func=factory.chi2(features,values,w)
+   #chi2_func=lambda shape: factory.eval(chi2,shape)
 
-   jaco=factory.jac(features,values,w)
-   jaco_func=lambda shape: factory.eval(jaco,shape)
+   #jaco=factory.jac(features,values,w)
+   #jaco_func=lambda shape: factory.eval(jaco,shape)
 
    # OPTIMIZE
    res = root(chi2_func,guess,method='lm',jac=jaco_func)
    print "clump =", res.x
 
-   # Clump in the cube
-   clu=factory.eval(sym,res.x)
-   M=clu.reshape((v_ub-v_lb+1,y_ub-y_lb+1,x_ub-x_lb+1))
+   # Clump compute
+   clu_func=factory.clump_func(features)
+   val_fit=clu_func(res.x)
+   # Remove clump from the real cube 
+   cube.add_sc(-val_fit,sc_index)
+   # Add clump to the synthetic cube
+   syn.add_sc(val_fit,sc_index)
+   
+
+   #END
+   #M=clu.reshape((v_ub-v_lb+1,y_ub-y_lb+1,x_ub-x_lb+1))
+   
+   #cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1] -= M
+   #syn[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1] += M
    
    # Matrices for displaying results (NOT ALGORITHMIC CODE)
-   ma=cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1].sum(axis=0)
-   spe=cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1].sum(axis=(1,2))
-   prof=M.sum(axis=0)
-   vmin=ma.min()
-   vmax=ma.max()
-   plt.clf() 
-   plt.subplot(2, 3, 1)
-   plt.imshow(ma,vmin=vmin,vmax=vmax)
-   plt.subplot(2, 3, 3)
-   plt.imshow(prof)
-   plt.subplot(2, 3, 2)
+   #ma=cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1].sum(axis=0)
+   #spe=cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1].sum(axis=(1,2))
+   #prof=M.sum(axis=0)
+   #vmin=ma.min()
+   #vmax=ma.max()
+   #plt.clf() 
+   #plt.subplot(2, 3, 1)
+   #plt.imshow(ma,vmin=vmin,vmax=vmax)
+   #plt.subplot(2, 3, 3)
+   #plt.imshow(prof)
+   #plt.subplot(2, 3, 2)
 
-   # Remove clump from the real cube 
-   cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1] -= M
-   
-   # Add clump to the synthetic cube
-   syn[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1] += M
+  
 
    # SHOW results (NOT ALGORITHMIC CODE)
-   spe2=cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1].sum(axis=(1,2))
-   plt.imshow(cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1].sum(axis=0),vmin=vmin,vmax=vmax)
-   plt.subplot(2, 3, 6)
-   plt.imshow(syn.sum(axis=0))
-   plt.subplot(2, 3, 5)
-   plt.imshow(cube.data.sum(axis=0))
-   plt.gca().add_patch(plt.Rectangle((x_lb,y_lb),x_ub-x_lb+1,y_ub-y_lb+1,alpha=1, facecolor='none'))
-   plt.subplot(2, 3, 4)
-   plt.plot(spe,"b")
-   plt.plot(spe2,"r")
-   plt.show() 
-   plt.pause(0.01)
+   #spe2=cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1].sum(axis=(1,2))
+   #plt.imshow(cube.data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1].sum(axis=0),vmin=vmin,vmax=vmax)
+   #plt.subplot(2, 3, 6)
+   #plt.imshow(syn.sum(axis=0))
+   #plt.subplot(2, 3, 5)
+   #plt.imshow(cube.data.sum(axis=0))
+   #plt.gca().add_patch(plt.Rectangle((x_lb,y_lb),x_ub-x_lb+1,y_ub-y_lb+1,alpha=1, facecolor='none'))
+   #plt.subplot(2, 3, 4)
+   #plt.plot(spe,"b")
+   #plt.plot(spe2,"r")
+   #plt.show() 
+   #plt.pause(0.01)
 
    # Return the clump parameters
    return res.x
