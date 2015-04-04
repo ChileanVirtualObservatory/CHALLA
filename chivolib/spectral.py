@@ -158,6 +158,11 @@ def doppler(freq,rv):
 #        end = len(axis)
 #    return ini, end
 
+def cube_data_unravel(data,idx):
+   return data.reshape((idx[5]-idx[4]+1,idx[3]-idx[2]+1,idx[1]-idx[0]+1))
+
+def cube_data_stack(data):
+   return data.sum(axis=0)
 
 
 class Cube:
@@ -190,30 +195,47 @@ class Cube:
         hdu = fits.PrimaryHDU(header=self.meta)
         hdu.data = self.data
         self.hdulist = fits.HDUList([hdu])
+    
+    def ravel(self,idx=np.array([])):
+        if len(idx)!=6:
+           lss=self.data
+        else:
+           lss=self.data[idx[4]:idx[5]+1,idx[2]:idx[3]+1,idx[0]:idx[1]+1]
+        return lss.ravel()
+
+    def stack(self,idx=np.array([])):
+        if len(idx)!=6:
+           lss=self.data
+        else:
+           lss=self.data[idx[4]:idx[5]+1,idx[2]:idx[3]+1,idx[0]:idx[1]+1]
+        return lss.sum(axis=0)
+
+    def add(self,sc,idx=np.array([])):
+        if (len(idx)!=6):
+           self.data=self.data + sc
+        else:
+           self.data[idx[4]:idx[5]+1,idx[2]:idx[3]+1,idx[0]:idx[1]+1] =self.data[idx[4]:idx[5]+1,idx[2]:idx[3]+1,idx[0]:idx[1]+1] + sc
+        
 
     def max(self):
         index=np.unravel_index(self.data.argmax(),self.data.shape)
         y=self.data[index]
         x=np.empty(3)
-        x[0]=self.nu_axis[index[0]]
+        x[2]=self.nu_axis[index[0]]
         x[1]=self.dec_axis[index[1]]
-        x[2]=self.ra_axis[index[2]]
+        x[0]=self.ra_axis[index[2]]
         return (y,x)
  
     def feature_space(self,center,window):
-        ra_ci=np.argmin(np.abs(self.ra_axis-center[2]));
-        ra_ui=np.argmin(np.abs(self.ra_axis-center[2]-window[2]));
-        ra_li=np.argmin(np.abs(self.ra_axis-center[2]+window[2]));
-        dec_ci=np.argmin(np.abs(self.dec_axis-center[1]));
-        ra_ci=np.argmin(np.abs(self.ra_axis-center[2]));
-        ra_ui=np.argmin(np.abs(self.ra_axis-center[2]-window[2]));
-        ra_li=np.argmin(np.abs(self.ra_axis-center[2]+window[2]));
+        ra_ci=np.argmin(np.abs(self.ra_axis-center[0]));
+        ra_ui=np.argmin(np.abs(self.ra_axis-center[0]-window[0]));
+        ra_li=np.argmin(np.abs(self.ra_axis-center[0]+window[0]));
         dec_ci=np.argmin(np.abs(self.dec_axis-center[1]));
         dec_ui=np.argmin(np.abs(self.dec_axis-center[1]-window[1]));
         dec_li=np.argmin(np.abs(self.dec_axis-center[1]+window[1]));
-        nu_ci=np.argmin(np.abs(self.nu_axis-center[0]));
-        nu_ui=np.argmin(np.abs(self.nu_axis-center[0]-window[0]));
-        nu_li=np.argmin(np.abs(self.nu_axis-center[0]+window[0]));
+        nu_ci=np.argmin(np.abs(self.nu_axis-center[2]));
+        nu_ui=np.argmin(np.abs(self.nu_axis-center[2]-window[2]));
+        nu_li=np.argmin(np.abs(self.nu_axis-center[2]+window[2]));
         
 
         crval1=self.ra_axis[ra_ci]
@@ -230,12 +252,11 @@ class Cube:
         nu_axis=np.linspace (crval3-crpix3*self.nu_delta,crval3+(naxis3-crpix3)*self.nu_delta, num=naxis3)
         adn=np.meshgrid(nu_axis,dec_axis,ra_axis, indexing='ij')
         X=np.empty((3,len(ra_axis)*len(dec_axis)*len(nu_axis)))
-        X[0]=adn[0].ravel()
+        X[2]=adn[0].ravel()
         X[1]=adn[1].ravel()
-        X[2]=adn[2].ravel()
-        yidx=(nu_li,nu_ui,dec_li,dec_ui,ra_li,ra_ui)
+        X[0]=adn[2].ravel()
+        yidx=(ra_li,ra_ui,dec_li,dec_ui,nu_li,nu_ui)
         return X,yidx
-
 
     def _add_HDU(self, hdu):
         self.hdulist.append(hdu)

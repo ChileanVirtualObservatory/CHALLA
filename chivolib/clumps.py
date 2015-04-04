@@ -1,30 +1,44 @@
 import numpy as np
-from statistics import Gaussian
+#from statistics import Gaussian
 from scipy.optimize import root
 import copy
 import matplotlib.pyplot as plt
 import sys
-from sympy import symbols,cos,sin,exp
+from spectral import *
+#from sympy import symbols,cos,sin,exp,lambdify,diff
 # Model: a,b,x0,y0,v0,dvx,dvy,sx,sy,sv,phi
 
 
 
-#def to_gauss((a,b,alp0,del0,v0,phi,sx,sy,sv,dvalp,dvdel)):
-#   sphi2=np.square(np.sin(phi))
-#   cphi2=np.square(np.cos(phi))
-#   s2phi=np.sin(2*phi)
-#   sx2=np.square(sx)
-#   sy2=np.square(sy)
-#   sv2=np.square(sv)
-#   La=cphi2/sx2 + sphi2/sy2 + np.square(dvalp)/sv2
-#   Ld=sphi2/sx2 + cphi2/sy2 + np.square(dvdel)/sv2
-#   Lb=-s2phi/(2*sx2) + s2phi/(2*sy2) + dvalp*dvdel/sv2
-#   Lc=-dvalp/sv2
-#   Le=-dvdel/sv2
-#   Lf=1.0/sv2
-#   L=np.array([[Lf,Le,Lc],[Le,Ld,Lb],[Lc,Lb,La]])
-#   mu=[v0,del0,alp0]
-#   return (a,b,mu,L)
+def to_gauss((a,b,x0,y0,v0,phi,sx,sy,sv,dvx,dvy)):
+   sphi2=np.square(np.sin(phi))
+   cphi2=np.square(np.cos(phi))
+   s2phi=np.sin(2*phi)
+   sx2=np.square(sx)
+   sy2=np.square(sy)
+   sv2=np.square(sv)
+   La=cphi2/sx2 + sphi2/sy2 + np.square(dvx)/sv2
+   Ld=sphi2/sx2 + cphi2/sy2 + np.square(dvy)/sv2
+   Lb=-s2phi/(2*sx2) + s2phi/(2*sy2) + dvx*dvy/sv2
+   Lc=-dvx/sv2
+   Le=-dvy/sv2
+   Lf=1.0/sv2
+   L=np.array([[La,Lb,Lc],[Lb,Ld,Le],[Lc,Le,Lf]])
+   mu=[x0,y0,v0]
+   return (a,b,mu,L)
+
+def gauss_eval(features,(a,b,mu,L),with_b=True):
+   C=np.empty_like(features)
+   C[0]=features[0] - mu[0]
+   C[1]=features[1] - mu[1]
+   C[2]=features[2] - mu[2]
+   V=C*(L.dot(C))
+   quad=V.sum(axis=0)
+   v=np.exp(-quad/2)
+   retval=a*v 
+   if with_b:
+      retval= retval + b
+   return retval
 
 #def _chiJacobian(Xv,Yv,w,params):
 #   #s0 = 1
@@ -72,43 +86,46 @@ from sympy import symbols,cos,sin,exp
 #   return val
 
 
-class GaussClumpModel:
-   def __init__(self,params):
-      # Parameters which define a Gaussian clump
-      self.shape = symbols('a b x0 y0 v0 phi sx sy sv dvx dvy')
-      (a, b, x0, y0, v0, phi, sx, sy, sv, dvx, dvy) = self.shape
-      # Variables of intensity Gaussian function
-      (self.x, self.y, self.v) = symbols('x y v')
+#class GaussClumpModel:
+#   def __init__(self,params):
+#      # Parameters which define a Gaussian clump
+#      self.shape = symbols('a b x0 y0 v0 phi sx sy sv dvx dvy')
+#      (a, b, x0, y0, v0, phi, sx, sy, sv, dvx, dvy) = self.shape
+#      # Variables of intensity Gaussian function
+#      (self.x, self.y, self.v) = symbols('x y v')
+#
+#      # Precision Matrix
+#      self.Lambda = np.array([
+#         [cos(phi)**2/sx**2 + sin(phi)**2/sy**2 + dvx**2/sv**2, -sin(2*phi)/(2*sx**2) + sin(2*phi)/(2*sy**2) + dvx*dvy/sv**2, -dvx/sv**2],
+#         [-sin(2*phi)/(2*sx**2) + sin(2*phi)/(2*sy**2) + dvx*dvy/sv**2, sin(phi)**2/sx**2 + cos(phi)**2/sy**2 + dvy**2/sv**2, -dvy/sv**2],
+#         [-dvx/sv**2, -dvy/sv**2, 1/sv**2]])
+#
+#      # x-mu vector
+#      u = np.array([self.x-x0, self.y-y0, self.v-v0])
+#
+#      # Gaussian function
+#      self.model  = a * exp(-0.5*np.dot(u,np.dot(self.Lambda,u))) + b
+#      M=self.model
+#      self.params = params
+#      self.fitfunc = np.vectorize(lambdify((self.x,self.y,self.v,a, b, x0, y0, v0, phi, sx, sy, sv, dvx, dvy),self.model))
+#      self.jacomodel = np.array([diff(M,a), diff(M,b), diff(M,x0), diff(M,y0), diff(M,v0), diff(M,phi),
+#           diff(M,sx), diff(M,sy), diff(M,sv), diff(M,dvx), diff(M,dvy)])
+#      
+#   def clump_func(self,features):
+#       ff=lambda par: self.fitfunc(features[0],features[1],features[2],par[0],par[1],par[2],par[3],par[4],par[5],par[6],par[7],par[8],par[9],par[10])
+#       return ff
+#
+def chi2(model,features,values,w,value_max,feature_max,params):
+   sys.stdout.write('.')
+   sys.stdout.flush()
+   su=values - gauss_eval(features,to_gauss(model))
+   t1 = np.square(su)*w
+   t2 = np.exp(-su)
+   t3 = np.square((model[2]-feature_max[0])/params['beam_size']) + np.square((model[3]-feature_max[1])/params['beam_size']) + np.square((model[4]-feature_max[2])/params['spe_res'])
+   t4 = np.square(model[0]+model[1] - value_max)
+   return(t1 + params['s0']*t2 + params['sc']*t3 + params['sa']*t4)
 
-      # Precision Matrix
-      self.Lambda = np.array([
-         [cos(phi)**2/sx**2 + sin(phi)**2/sy**2 + dvx**2/sv**2, -sin(2*phi)/(2*sx**2) + sin(2*phi)/(2*sy**2) + dvx*dvy/sv**2, -dvx/sv**2],
-         [-sin(2*phi)/(2*sx**2) + sin(2*phi)/(2*sy**2) + dvx*dvy/sv**2, sin(phi)**2/sx**2 + cos(phi)**2/sy**2 + dvy**2/sv**2, -dvy/sv**2],
-         [-dvx/sv**2, -dvy/sv**2, 1/sv**2]])
-
-      # x-mu vector
-      u = np.array([self.x-x0, self.y-y0, self.v-v0])
-
-      # Gaussian function
-      self.model  = a * exp(-0.5*np.dot(u,np.dot(self.Lambda,u))) + b
-      self.params = params
-      self.fitfunc = np.vectorize(lambdify((x,y,v,a, b, x0, y0, v0, phi, Dx, Dy, Dv, dvx, dvy),self.model))
-
-   def clump_func(self,features):
-       ff=lambda par: fv(features[0],features[1],featues[2],par[0],par[1],par[2],par[3],par[4],par[5],par[6],par[7],par[8],par[9],par[10])
-       return ff
-
-   def chi2(self,features,values,w):
-       #TODO
-       pass
-   
-   def eval(self,expr,shape):
-      #(a,b,x0,y0,v0,phi,sx,sy,sv,dvx,dvy)=shape
-      for i in range(len(shape)):
-         expr=expr.subs(self.shape[i],shape[i])
-      return expr
-
-def next_clump(cube,syn,factory,params):
+def next_clump(cube,syn,params):
    # Non-blocking plot 
    plt.ion() 
    plt.clf() 
@@ -118,58 +135,78 @@ def next_clump(cube,syn,factory,params):
    b=0
    
    # Initial guess: position and orientation
-   x0=feature_max[2]
+   x0=feature_max[0]
    y0=feature_max[1]
-   v0=feature_max[0]
+   v0=feature_max[2]
    phi=0
    
    # Initial guess: variances
-   sigmas=params['few_deltas']*params['res_vect'] # few times the resolution
-   sx=sigmas[2]
+   res_vect=np.array([params['beam_size'],params['beam_size'],params['spe_res']])
+   sigmas=params['few_deltas']*res_vect # few times the resolution
+   sx=sigmas[1]
    sy=sigmas[1]
-   sv=sigmas[0]
+   sv=sigmas[2]
  
    # Initial guess: redshift
    dvalp=0
    dvdel=0
   
    # Compute the weight vector and the feature space
-   w_sigmas=params['weight_deltas']*params['res_vect'] # several times the resolution
+   w_sigmas=params['weight_deltas']*res_vect # several times the resolution
    (features,sc_index) = cube.feature_space(feature_max,2*w_sigmas) 
    w_shape=(1,0,x0,y0,v0,0,w_sigmas[2],w_sigmas[1],w_sigmas[0],0,0)
-   w_func=factory.clump_func(features)
-   w=w_func(w_shape)
+   w=gauss_eval(features,to_gauss(w_shape),False)
  
+   #Plot current cube
+   plt.subplot(2, 3, 4)
+   plt.imshow(cube.stack())
+   rect=plt.Rectangle((sc_index[0],sc_index[2]),sc_index[1]-sc_index[0]+1,sc_index[3]-sc_index[2]+1,alpha=1, facecolor='none')
+   plt.gca().add_patch(rect)
+   
    #Plot current subcube
    plt.subplot(2, 3, 1)
-   plt.imshow(cube.subcube_stack(sc_index))
+   plt.imshow(cube.stack(sc_index))
+
    # Compile first guess
    guess=[a,b,x0,y0,v0,phi,sx,sy,sv,dvalp,dvdel]
 
-   # Unravel the values
-   values=cube.unravel(sc_index)
-   #data[v_lb:v_ub+1,y_lb:y_ub+1,x_lb:x_ub+1]
-   #values=lss.ravel()
+   # Ravel the values
+   values=cube.ravel(sc_index)
    
-   # Construct the chi2 and chi_func symbolic expressions  
-   chi2_func,jaco_func=factory.chi2(features,values,w)
-   #chi2_func=lambda shape: factory.eval(chi2,shape)
-
-   #jaco=factory.jac(features,values,w)
-   #jaco_func=lambda shape: factory.eval(jaco,shape)
+   # Pack all args of chi2
+   chi2_args=(features,values,w,value_max,feature_max,params)
+   # Construct the chi2 and chi_func functions
 
    # OPTIMIZE
-   res = root(chi2_func,guess,method='lm',jac=jaco_func)
+   #res = root(chi2_func,guess,method='lm',jac=jaco_func,args=chi2_args)
+   res = root(chi2,guess,method='lm',args=chi2_args)
    print "clump =", res.x
 
-   # Clump compute
-   clu_func=factory.clump_func(features)
-   val_fit=clu_func(res.x)
+   # Clump values
+   val_fit=gauss_eval(features,to_gauss(res.x),False)
+   fit_cube=cube_data_unravel(val_fit,sc_index)
    # Remove clump from the real cube 
-   cube.add_sc(-val_fit,sc_index)
+   cube.add(-fit_cube,sc_index)
    # Add clump to the synthetic cube
-   syn.add_sc(val_fit,sc_index)
+   syn.add(fit_cube,sc_index)
    
+   #Plot current cube
+   plt.subplot(2, 3, 5)
+   plt.imshow(cube.stack())
+   plt.gca().add_patch(rect)
+   
+   #Plot current subcube
+   plt.subplot(2, 3, 2)
+   plt.imshow(cube.stack(sc_index))
+   
+   #Plot clump
+   plt.subplot(2, 3, 3)
+   plt.imshow(cube_data_stack(fit_cube))
+
+   #Plot synthetic
+   plt.subplot(2, 3, 6)
+   plt.imshow(syn.stack())
+   plt.gca().add_patch(rect)
 
    #END
    #M=clu.reshape((v_ub-v_lb+1,y_ub-y_lb+1,x_ub-x_lb+1))
@@ -214,7 +251,7 @@ def gauss_clumps_params():
    retval=dict()
    retval['threshold']=0.000001
    retval['few_deltas']=5
-   retval['weight_deltas']=40
+   retval['weight_deltas']=10
    retval['s0']=1.0
    retval['sc']=1.0
    retval['sa']=1.0
@@ -228,10 +265,10 @@ def gauss_clumps(orig_cube,params):
    stop=False
    norm=cube.data.mean()
    print "Initial Norm", norm
-   params['res_vect']=np.array([abs(float(cube.meta['CDELT3'])),abs(float(cube.meta['BMIN'])),abs(float(cube.meta['BMIN']))])
-   factory=GaussClumpModel(params)
+   params['beam_size']=abs(float(cube.meta['BMIN']))
+   params['spe_res']=abs(float(cube.meta['CDELT3']))
    while not stop:
-      theta=next_clump(cube,syn,factory,params)
+      theta=next_clump(cube,syn,params)
       C.append(theta)
       norm=cube.data.mean()
       print "norm", norm
