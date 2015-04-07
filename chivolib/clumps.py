@@ -1,6 +1,6 @@
 import numpy as np
 #from statistics import Gaussian
-from scipy.optimize import root
+from scipy.optimize import minimize
 import copy
 import matplotlib.pyplot as plt
 import sys
@@ -119,11 +119,79 @@ def chi2(model,features,values,w,value_max,feature_max,params):
    sys.stdout.write('.')
    sys.stdout.flush()
    su=values - gauss_eval(features,to_gauss(model))
-   t1 = np.square(su)*w
-   t2 = np.exp(-su)
+   nf=len(su) - 11;
+   t1 = (np.square(su)*w).sum()/nf
+   t2 = (np.exp(-su)).sum()/nf
    t3 = np.square((model[2]-feature_max[0])/params['beam_size']) + np.square((model[3]-feature_max[1])/params['beam_size']) + np.square((model[4]-feature_max[2])/params['spe_res'])
    t4 = np.square(model[0]+model[1] - value_max)
    return(t1 + params['s0']*t2 + params['sc']*t3 + params['sa']*t4)
+
+def jac_chi2(model,features,values,w,value_max,feature_max,params):
+   sys.stdout.write('*')
+   sys.stdout.flush()
+
+   # Unpack values
+   (a, b, x0, y0, v0, phi, sx, sy, sv, dvx, dvy) = model
+   (a,b,mu,L)=to_gauss(model)
+   fit=gauss_eval(features,(a,b,mu,L))
+   su=values - fit
+   nf=len(su) - 11;
+   basic_term = (-2*su*w - params['s0']*np.exp(-su))/nf
+   exp_term = fit/a  - b
+   jaco=np.empty(11)
+   # partial derivate w.r.t. a
+   extra_sa = 2*params['sa']*(a + b - value_max)
+   jaco[0]=(basic_term*exp_term).sum()  + extra_sa
+   # partial derivate w.r.t. b
+   jaco[1]=basic_term.sum() + extra_sa
+   # partial derivate w.r.t. x0,y0 and v0
+   C=np.empty_like(features)
+   C[0]=features[0] - mu[0]
+   C[1]=features[1] - mu[1]
+   C[2]=features[2] - mu[2]
+   V=L.dot(C)
+   extra_sc = 2*params['sc']*(mu - feature_max)/np.array([params['beam_size'],params['beam_size'],params['spe_res']])
+   # compose x0
+   jaco[2]=(a*basic_term*exp_term*V[0]).sum() + extra_sc[0]
+   # compose y0
+   jaco[3]=(a*basic_term*exp_term*V[1]).sum() + extra_sc[1]
+   # compose v0
+   jaco[4]=(a*basic_term*exp_term*V[2]).sum() + extra_sc[2]
+   # partial derivate w.r.t. phi,sx,sy,sv,dvx,dvy
+   sphi=np.sin(phi)
+   s2phi=np.sin(2*phi)
+   sphi2=np.square(sphi)
+   cphi=np.cos(phi)
+   c2phi=np.cos(2*phi)
+   cphi2=np.square(cphi)
+   sx2=np.square(sx)
+   sy2=np.square(sy)
+   sv2=np.square(sv)
+   sx3=np.power(sx,3)
+   sy3=np.power(sy,3)
+   sv3=np.power(sv,3)
+   dvx2=np.square(dvx)
+   dvy2=np.square(dvy)
+   D_phi=(1.0/sy2 - 1.0/sx2)*np.array([[2*sphi*cphi,c2phi,0],[c2phi,-2*sphi*cphi,0],[0,0,0]])
+   V=(C*(D_phi.dot(C))).sum(axis=0)
+   jaco[5]=(a*basic_term*exp_term*V).sum()
+   D_sx=(1.0/sx3)*np.array([[-2*cphi2,s2phi,0],[s2phi,-2*sphi2,0],[0,0,0]])
+   V=(C*(D_sx.dot(C))).sum(axis=0)
+   jaco[6]=(a*basic_term*exp_term*V).sum()
+   D_sy=(1.0/sy3)*np.array([[-2*sphi2,-s2phi,0],[-s2phi,-2*cphi2,0],[0,0,0]])
+   V=(C*(D_sy.dot(C))).sum(axis=0)
+   jaco[7]=(a*basic_term*exp_term*V).sum()
+   D_sv=(2.0/sv3)*np.array([[-dvx2,-dvx*dvy,dvx],[-dvx*dvy,-dvy2,dvy],[dvx,dvy,-1]])
+   V=(C*(D_sv.dot(C))).sum(axis=0)
+   jaco[8]=(a*basic_term*exp_term*V).sum()
+   D_dvx=(1.0/sv2)*np.array([[2*dvx,dvy,-1],[dvy,0,0],[-1,0,0]])
+   V=(C*(D_dvx.dot(C))).sum(axis=0)
+   jaco[9]=(a*basic_term*exp_term*V).sum()
+   D_dvy=(1.0/sv2)*np.array([[0,dvx,0],[dvx,2*dvy,-1],[0,-1,0]])
+   V=(C*(D_dvy.dot(C))).sum(axis=0)
+   jaco[10]=(a*basic_term*exp_term*V).sum()
+   return jaco
+   
 
 def next_clump(cube,syn,params):
    # Non-blocking plot 
@@ -179,7 +247,8 @@ def next_clump(cube,syn,params):
 
    # OPTIMIZE
    #res = root(chi2_func,guess,method='lm',jac=jaco_func,args=chi2_args)
-   res = root(chi2,guess,method='lm',args=chi2_args)
+   #ares = root(chi2,guess,method='lm',args=chi2_args)
+   res = minimize(chi2,guess,jac=jac_chi2,method='BFGS',args=chi2_args)
    print "clump =", res.x
 
    # Clump values
@@ -240,8 +309,8 @@ def next_clump(cube,syn,params):
    #plt.subplot(2, 3, 4)
    #plt.plot(spe,"b")
    #plt.plot(spe2,"r")
-   #plt.show() 
-   #plt.pause(0.01)
+   plt.show() 
+   plt.pause(0.01)
 
    # Return the clump parameters
    return res.x
@@ -260,7 +329,8 @@ def gauss_clumps_params():
 
 def gauss_clumps(orig_cube,params):
    cube=copy.deepcopy(orig_cube)
-   syn=np.empty_like(cube.data)
+   syn=copy.copy(orig_cube)
+   syn.data=np.empty_like(cube.data)
    C=[]
    stop=False
    norm=cube.data.mean()
@@ -277,11 +347,11 @@ def gauss_clumps(orig_cube,params):
    # SHOW RESULTS
    plt.clf() 
    plt.subplot(1, 3, 2)
-   plt.imshow(cube.data.sum(axis=0))
+   plt.imshow(cube.stack())
    plt.subplot(1, 3, 1)
-   plt.imshow(orig_cube.data.sum(axis=0))
+   plt.imshow(orig_cube.stack())
    plt.subplot(1, 3, 3)
-   plt.imshow(syn.sum(axis=0))
+   plt.imshow(syn.stack())
    plt.show()
    plt.pause(100)
    print "RESULTS"
