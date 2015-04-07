@@ -211,7 +211,7 @@ def next_clump(cube,syn,params):
    # Initial guess: variances
    res_vect=np.array([params['beam_size'],params['beam_size'],params['spe_res']])
    sigmas=params['few_deltas']*res_vect # few times the resolution
-   sx=sigmas[1]
+   sx=sigmas[0]
    sy=sigmas[1]
    sv=sigmas[2]
  
@@ -252,6 +252,8 @@ def next_clump(cube,syn,params):
    print "clump =", res.x
 
    # Clump values
+   print "AND NOW THE GAUSS"
+   print to_gauss(res.x) 
    val_fit=gauss_eval(features,to_gauss(res.x),False)
    fit_cube=cube_data_unravel(val_fit,sc_index)
    # Remove clump from the real cube 
@@ -319,7 +321,7 @@ def next_clump(cube,syn,params):
 def gauss_clumps_params():
    retval=dict()
    retval['threshold']=0.000001
-   retval['few_deltas']=5
+   retval['few_deltas']=3
    retval['weight_deltas']=10
    retval['s0']=1.0
    retval['sc']=1.0
