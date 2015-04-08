@@ -34,7 +34,11 @@ def gauss_eval(features,(a,b,mu,L),with_b=True):
    C[2]=features[2] - mu[2]
    V=C*(L.dot(C))
    quad=V.sum(axis=0)
+   print(quad)
    v=np.exp(-quad/2)
+   # 0-1 STandarization
+   print v
+   v=v/v.max()
    retval=a*v 
    if with_b:
       retval= retval + b
@@ -137,6 +141,8 @@ def jac_chi2(model,features,values,w,value_max,feature_max,params):
    su=values - fit
    nf=len(su) - 11;
    basic_term = (-2*su*w - params['s0']*np.exp(-su))/nf
+   print "basic_term"
+   print basic_term
    exp_term = fit/a  - b
    jaco=np.empty(11)
    # partial derivate w.r.t. a
@@ -190,6 +196,8 @@ def jac_chi2(model,features,values,w,value_max,feature_max,params):
    D_dvy=(1.0/sv2)*np.array([[0,dvx,0],[dvx,2*dvy,-1],[0,-1,0]])
    V=(C*(D_dvy.dot(C))).sum(axis=0)
    jaco[10]=(a*basic_term*exp_term*V).sum()
+   print "jaco"
+   print jaco
    return jaco
    
 
@@ -199,8 +207,8 @@ def next_clump(cube,syn,params):
    plt.clf() 
    
    (value_max,feature_max) = cube.max()
-   a=value_max
-   b=0
+   b=params['rms'] # need to be a local minima... not good
+   a=value_max -b - params['rms']
    
    # Initial guess: position and orientation
    x0=feature_max[0]
@@ -249,11 +257,13 @@ def next_clump(cube,syn,params):
    #res = root(chi2_func,guess,method='lm',jac=jaco_func,args=chi2_args)
    #ares = root(chi2,guess,method='lm',args=chi2_args)
    res = minimize(chi2,guess,jac=jac_chi2,method='BFGS',args=chi2_args)
+   print
    print "clump =", res.x
+   print "res =", res
 
    # Clump values
-   print "AND NOW THE GAUSS"
-   print to_gauss(res.x) 
+   #print "AND NOW THE GAUSS"
+   #print to_gauss(res.x) 
    val_fit=gauss_eval(features,to_gauss(res.x),False)
    fit_cube=cube_data_unravel(val_fit,sc_index)
    # Remove clump from the real cube 
@@ -321,11 +331,12 @@ def next_clump(cube,syn,params):
 def gauss_clumps_params():
    retval=dict()
    retval['threshold']=0.000001
-   retval['few_deltas']=3
+   retval['few_deltas']=5
    retval['weight_deltas']=10
    retval['s0']=1.0
    retval['sc']=1.0
    retval['sa']=1.0
+   retval['rms']=0.02
 
    return retval
 
