@@ -221,9 +221,9 @@ class Cube:
         index=np.unravel_index(self.data.argmax(),self.data.shape)
         y=self.data[index]
         x=np.empty(3)
-        x[2]=self.nu_axis[index[0]]
-        x[1]=self.dec_axis[index[1]]
         x[0]=self.ra_axis[index[2]]
+        x[1]=self.dec_axis[index[1]]
+        x[2]=self.nu_axis[index[0]]
         return (y,x)
  
     def feature_space(self,center,window):

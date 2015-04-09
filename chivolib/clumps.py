@@ -34,11 +34,38 @@ def gauss_eval(features,(a,b,mu,L),with_b=True):
    C[2]=features[2] - mu[2]
    V=C*(L.dot(C))
    quad=V.sum(axis=0)
-   print(quad)
-   v=np.exp(-quad/2)
-   # 0-1 STandarization
-   print v
-   v=v/v.max()
+   
+   # Standarize to 0-1 in an intelligent way to remove numerical precision problems
+   #print quad
+   quad=quad - quad.min()
+   
+   #plt.figure()
+   #plt.plot(quad)
+   #print(quad)
+   v=np.exp(-quad/2.0)
+   #plt.figure()
+   #plt.plot(v)
+   
+   # 0-1 STandarization 
+   #print v
+
+   if (v.max()==0):
+     print "ERROOOORRR quad"
+     print quad
+     print "v"
+     print v
+     print "Lambda"
+     print L
+     print "mu"
+     print mu
+     plt.figure()
+     plt.plot(quad)
+     print(quad)
+     plt.figure()
+     plt.plot(v)
+   
+   #plt.pause(100)
+   #v=v/v.max()
    retval=a*v 
    if with_b:
       retval= retval + b
@@ -141,8 +168,8 @@ def jac_chi2(model,features,values,w,value_max,feature_max,params):
    su=values - fit
    nf=len(su) - 11;
    basic_term = (-2*su*w - params['s0']*np.exp(-su))/nf
-   print "basic_term"
-   print basic_term
+   #print "basic_term"
+   #print basic_term
    exp_term = fit/a  - b
    jaco=np.empty(11)
    # partial derivate w.r.t. a
@@ -196,8 +223,8 @@ def jac_chi2(model,features,values,w,value_max,feature_max,params):
    D_dvy=(1.0/sv2)*np.array([[0,dvx,0],[dvx,2*dvy,-1],[0,-1,0]])
    V=(C*(D_dvy.dot(C))).sum(axis=0)
    jaco[10]=(a*basic_term*exp_term*V).sum()
-   print "jaco"
-   print jaco
+   #print "jaco"
+   #print jaco
    return jaco
    
 
@@ -230,7 +257,7 @@ def next_clump(cube,syn,params):
    # Compute the weight vector and the feature space
    w_sigmas=params['weight_deltas']*res_vect # several times the resolution
    (features,sc_index) = cube.feature_space(feature_max,2*w_sigmas) 
-   w_shape=(1,0,x0,y0,v0,0,w_sigmas[2],w_sigmas[1],w_sigmas[0],0,0)
+   w_shape=(1,0,x0,y0,v0,0,w_sigmas[0],w_sigmas[1],w_sigmas[2],0,0)
    w=gauss_eval(features,to_gauss(w_shape),False)
  
    #Plot current cube
@@ -245,7 +272,9 @@ def next_clump(cube,syn,params):
 
    # Compile first guess
    guess=[a,b,x0,y0,v0,phi,sx,sy,sv,dvalp,dvdel]
-
+   print "GUESS"
+   print guess
+   
    # Ravel the values
    values=cube.ravel(sc_index)
    
@@ -336,7 +365,7 @@ def gauss_clumps_params():
    retval['s0']=1.0
    retval['sc']=1.0
    retval['sa']=1.0
-   retval['rms']=0.02
+   retval['rms']=0.00002
 
    return retval
 
@@ -347,14 +376,14 @@ def gauss_clumps(orig_cube,params):
    C=[]
    stop=False
    norm=cube.data.mean()
-   print "Initial Norm", norm
+   print "Initial Sum", norm
    params['beam_size']=abs(float(cube.meta['BMIN']))
    params['spe_res']=abs(float(cube.meta['CDELT3']))
    while not stop:
       theta=next_clump(cube,syn,params)
       C.append(theta)
       norm=cube.data.mean()
-      print "norm", norm
+      print "Sum", norm
       stop = (norm < params['threshold'])
    
    # SHOW RESULTS
