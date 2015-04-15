@@ -1,6 +1,6 @@
 import numpy as np
 #from statistics import Gaussian
-from scipy.optimize import minimize
+from scipy.optimize import fmin_bfgs,check_grad
 import copy
 import matplotlib.pyplot as plt
 import sys
@@ -146,18 +146,22 @@ def gauss_eval(features,(a,b,mu,L),with_b=True):
 #       ff=lambda par: self.fitfunc(features[0],features[1],features[2],par[0],par[1],par[2],par[3],par[4],par[5],par[6],par[7],par[8],par[9],par[10])
 #       return ff
 #
-def chi2(model,features,values,w,value_max,feature_max,params):
+def chi2(model,features,values,w,value_max,feature_max,res_vect,s_vect):
    sys.stdout.write('.')
    sys.stdout.flush()
    su=values - gauss_eval(features,to_gauss(model))
    nf=len(su) - 11;
    t1 = (np.square(su)*w).sum()/nf
    t2 = (np.exp(-su)).sum()/nf
-   t3 = np.square((model[2]-feature_max[0])/params['beam_size']) + np.square((model[3]-feature_max[1])/params['beam_size']) + np.square((model[4]-feature_max[2])/params['spe_res'])
+   t3 = np.square((model[2]-feature_max[0])/res_vect[0]) + np.square((model[3]-feature_max[1])/res_vect[1]) + np.square((model[4]-feature_max[2])/res_vect[2])
    t4 = np.square(model[0]+model[1] - value_max)
-   return(t1 + params['s0']*t2 + params['sc']*t3 + params['sa']*t4)
+   #print "chi2"
+   #print t1 + s_vect[0]*t2 + s_vect[1]*t3 + s_vect[2]*t4
+   #print "mod"
+   #print model
+   return(t1 + s_vect[0]*t2 + s_vect[1]*t3 + s_vect[2]*t4)
 
-def jac_chi2(model,features,values,w,value_max,feature_max,params):
+def jac_chi2(model,features,values,w,value_max,feature_max,res_vect,s_vect):
    sys.stdout.write('*')
    sys.stdout.flush()
 
@@ -167,13 +171,13 @@ def jac_chi2(model,features,values,w,value_max,feature_max,params):
    fit=gauss_eval(features,(a,b,mu,L))
    su=values - fit
    nf=len(su) - 11;
-   basic_term = (-2*su*w - params['s0']*np.exp(-su))/nf
+   basic_term = (-2*su*w + s_vect[0]*np.exp(-su))/nf
    #print "basic_term"
    #print basic_term
-   exp_term = fit/a  - b
+   exp_term = (fit - b)/a
    jaco=np.empty(11)
    # partial derivate w.r.t. a
-   extra_sa = 2*params['sa']*(a + b - value_max)
+   extra_sa = 2*s_vect[2]*(a + b - value_max)
    jaco[0]=(basic_term*exp_term).sum()  + extra_sa
    # partial derivate w.r.t. b
    jaco[1]=basic_term.sum() + extra_sa
@@ -182,15 +186,15 @@ def jac_chi2(model,features,values,w,value_max,feature_max,params):
    C[0]=features[0] - mu[0]
    C[1]=features[1] - mu[1]
    C[2]=features[2] - mu[2]
-   V=L.dot(C)
-   extra_sc = 2*params['sc']*(mu - feature_max)/np.array([params['beam_size'],params['beam_size'],params['spe_res']])
+   V=-L.dot(C) # Derivate of the quadratic form
+   extra_sc = 2*s_vect[1]*(mu - feature_max)/(res_vect*res_vect)
    # compose x0
    jaco[2]=(a*basic_term*exp_term*V[0]).sum() + extra_sc[0]
    # compose y0
    jaco[3]=(a*basic_term*exp_term*V[1]).sum() + extra_sc[1]
    # compose v0
    jaco[4]=(a*basic_term*exp_term*V[2]).sum() + extra_sc[2]
-   # partial derivate w.r.t. phi,sx,sy,sv,dvx,dvy
+   ## partial derivate w.r.t. phi,sx,sy,sv,dvx,dvy
    sphi=np.sin(phi)
    s2phi=np.sin(2*phi)
    sphi2=np.square(sphi)
@@ -206,27 +210,49 @@ def jac_chi2(model,features,values,w,value_max,feature_max,params):
    dvx2=np.square(dvx)
    dvy2=np.square(dvy)
    D_phi=(1.0/sy2 - 1.0/sx2)*np.array([[2*sphi*cphi,c2phi,0],[c2phi,-2*sphi*cphi,0],[0,0,0]])
-   V=(C*(D_phi.dot(C))).sum(axis=0)
+   V=-(C*(D_phi.dot(C))).sum(axis=0)/2.0
    jaco[5]=(a*basic_term*exp_term*V).sum()
    D_sx=(1.0/sx3)*np.array([[-2*cphi2,s2phi,0],[s2phi,-2*sphi2,0],[0,0,0]])
-   V=(C*(D_sx.dot(C))).sum(axis=0)
+   V=-(C*(D_sx.dot(C))).sum(axis=0)/2.0
    jaco[6]=(a*basic_term*exp_term*V).sum()
    D_sy=(1.0/sy3)*np.array([[-2*sphi2,-s2phi,0],[-s2phi,-2*cphi2,0],[0,0,0]])
-   V=(C*(D_sy.dot(C))).sum(axis=0)
+   V=-(C*(D_sy.dot(C))).sum(axis=0)/2.0
    jaco[7]=(a*basic_term*exp_term*V).sum()
    D_sv=(2.0/sv3)*np.array([[-dvx2,-dvx*dvy,dvx],[-dvx*dvy,-dvy2,dvy],[dvx,dvy,-1]])
-   V=(C*(D_sv.dot(C))).sum(axis=0)
+   V=-(C*(D_sv.dot(C))).sum(axis=0)/2.0
    jaco[8]=(a*basic_term*exp_term*V).sum()
    D_dvx=(1.0/sv2)*np.array([[2*dvx,dvy,-1],[dvy,0,0],[-1,0,0]])
-   V=(C*(D_dvx.dot(C))).sum(axis=0)
+   V=-(C*(D_dvx.dot(C))).sum(axis=0)/2.0
    jaco[9]=(a*basic_term*exp_term*V).sum()
    D_dvy=(1.0/sv2)*np.array([[0,dvx,0],[dvx,2*dvy,-1],[0,-1,0]])
-   V=(C*(D_dvy.dot(C))).sum(axis=0)
+   V=-(C*(D_dvy.dot(C))).sum(axis=0)/2.0
    jaco[10]=(a*basic_term*exp_term*V).sum()
    #print "jaco"
    #print jaco
    return jaco
-   
+ 
+
+#def standarize((features,values,w,value_max,feature_max,res_vect,s_vect)):
+#   s_features=np.empty_like(features)
+#   s_xmax=np.abs(features[0]).max()
+#   s_ymax=np.abs(features[1]).max()
+#   s_zmax=np.abs(features[2]).max()
+#   s_features[0]=features[0]/s_xmax
+#   s_features[1]=features[1]/s_ymax
+#   s_features[2]=features[2]/s_zmax
+#   s_features_max=np.empty_like(feature_max)
+#   s_features_max[0]=feature_max[0]/s_xmax
+#   s_features_max[1]=feature_max[1]/s_ymax
+#   s_features_max[2]=feature_max[2]/s_zmax
+#   s_values=values/value_max
+#   s_res_vect=np.empty_like(res_vect)
+#   s_res_vect[0]=res_vect[0]/s_xmax
+#   s_res_vect[1]=res_vect[1]/s_ymax
+#   s_res_vect[2]=res_vect[2]/s_zmax
+#   args=(s_features,s_values,w,1,s_features_max,s_res_vect,s_vect)
+#   #(a,b,x0,y0,v0,phi,sx,sy,sv,dvx,dvy)
+#   tr=np.array([value_max,value_max,s_xmax,s_ymax,s_zmax,1,s_xmax,s_ymax,s_zmax,s_zmax/s_xmax,s_zmax/s_ymax])
+#   return (args,tr)
 
 def next_clump(cube,syn,params):
    # Non-blocking plot 
@@ -235,7 +261,7 @@ def next_clump(cube,syn,params):
    
    (value_max,feature_max) = cube.max()
    b=params['rms'] # need to be a local minima... not good
-   a=value_max -b - params['rms']
+   a=value_max - b
    
    # Initial guess: position and orientation
    x0=feature_max[0]
@@ -245,10 +271,7 @@ def next_clump(cube,syn,params):
    
    # Initial guess: variances
    res_vect=np.array([params['beam_size'],params['beam_size'],params['spe_res']])
-   sigmas=params['few_deltas']*res_vect # few times the resolution
-   sx=sigmas[0]
-   sy=sigmas[1]
-   sv=sigmas[2]
+   s_vect=np.array([params['s0'],params['sc'],params['sa']])
  
    # Initial guess: redshift
    dvalp=0
@@ -270,30 +293,45 @@ def next_clump(cube,syn,params):
    plt.subplot(2, 3, 1)
    plt.imshow(cube.stack(sc_index))
 
-   # Compile first guess
-   guess=[a,b,x0,y0,v0,phi,sx,sy,sv,dvalp,dvdel]
-   print "GUESS"
-   print guess
    
    # Ravel the values
    values=cube.ravel(sc_index)
    
+   idx=(values-a/2).argmin()
+   sq2l2=np.sqrt(2*np.log(2))
+   sx=np.abs(features[0][idx]-feature_max[0])/sq2l2
+   sy=np.abs(features[1][idx]-feature_max[1])/sq2l2
+   sv=np.abs(features[2][idx]-feature_max[2])/sq2l2
+   # Compile first guess
+   guess=np.array([a,b,x0,y0,v0,phi,sx,sy,sv,dvalp,dvdel])
+   print "GUESS"
+   print guess
+   
    # Pack all args of chi2
-   chi2_args=(features,values,w,value_max,feature_max,params)
-   # Construct the chi2 and chi_func functions
+   chi2_args=(features,values,w,value_max,feature_max,res_vect,s_vect)
+   
 
+   #print "grad error", check_grad(chi2,jac_chi2,guess,features,values,w,value_max,feature_max,res_vect,s_vect)
+   #print "PREV= ", chi2_args
+   # Standarize everything
+   #(std_args,tr_vect)=standarize(chi2_args)
+   #print "STAND= ", std_args
+   #print "tr= ", tr_vect
+   #s_guess=guess/tr_vect
    # OPTIMIZE
-   #res = root(chi2_func,guess,method='lm',jac=jaco_func,args=chi2_args)
-   #ares = root(chi2,guess,method='lm',args=chi2_args)
-   res = minimize(chi2,guess,jac=jac_chi2,method='BFGS',args=chi2_args)
+   #res = minimize(chi2,guess,jac=jac_chi2,method='CG',args=chi2_args)
+   res=fmin_bfgs(chi2, guess,fprime=jac_chi2, args=chi2_args,gtol=1e-10)
+   #res=fmin_bfgs(chi2, guess,args=chi2_args)
+   #res = minimize(chi2,guess,jac=jac_chi2,method='BFGS',args=chi2_args,tol=1e-30)
    print
-   print "clump =", res.x
    print "res =", res
-
+   print
+   print "clump =", res  #*tr_vect
+   sys.stdout.flush()
    # Clump values
    #print "AND NOW THE GAUSS"
    #print to_gauss(res.x) 
-   val_fit=gauss_eval(features,to_gauss(res.x),False)
+   val_fit=gauss_eval(features,to_gauss(res),False)
    fit_cube=cube_data_unravel(val_fit,sc_index)
    # Remove clump from the real cube 
    cube.add(-fit_cube,sc_index)
@@ -354,20 +392,23 @@ def next_clump(cube,syn,params):
    plt.pause(0.01)
 
    # Return the clump parameters
-   return res.x
+   return res
 
 
 def gauss_clumps_params():
    retval=dict()
    retval['threshold']=0.000001
-   retval['few_deltas']=5
-   retval['weight_deltas']=10
+   retval['weight_deltas']=5
    retval['s0']=1.0
    retval['sc']=1.0
    retval['sa']=1.0
-   retval['rms']=0.00002
-
+   #retval['rms']=0.00002
    return retval
+
+def compute_rms(data):
+   res=data[data < 0]
+   fin=(res*res).sum()/len(res)
+   return np.sqrt(fin)
 
 def gauss_clumps(orig_cube,params):
    cube=copy.deepcopy(orig_cube)
@@ -379,6 +420,8 @@ def gauss_clumps(orig_cube,params):
    print "Initial Sum", norm
    params['beam_size']=abs(float(cube.meta['BMIN']))
    params['spe_res']=abs(float(cube.meta['CDELT3']))
+   params['rms']=compute_rms(cube.data)
+   print params['rms']
    while not stop:
       theta=next_clump(cube,syn,params)
       C.append(theta)
