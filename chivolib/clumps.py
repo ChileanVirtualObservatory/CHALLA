@@ -232,27 +232,27 @@ def jac_chi2(model,features,values,w,value_max,feature_max,res_vect,s_vect):
    return jaco
  
 
-#def standarize((features,values,w,value_max,feature_max,res_vect,s_vect)):
-#   s_features=np.empty_like(features)
-#   s_xmax=np.abs(features[0]).max()
-#   s_ymax=np.abs(features[1]).max()
-#   s_zmax=np.abs(features[2]).max()
-#   s_features[0]=features[0]/s_xmax
-#   s_features[1]=features[1]/s_ymax
-#   s_features[2]=features[2]/s_zmax
-#   s_features_max=np.empty_like(feature_max)
-#   s_features_max[0]=feature_max[0]/s_xmax
-#   s_features_max[1]=feature_max[1]/s_ymax
-#   s_features_max[2]=feature_max[2]/s_zmax
-#   s_values=values/value_max
-#   s_res_vect=np.empty_like(res_vect)
-#   s_res_vect[0]=res_vect[0]/s_xmax
-#   s_res_vect[1]=res_vect[1]/s_ymax
-#   s_res_vect[2]=res_vect[2]/s_zmax
-#   args=(s_features,s_values,w,1,s_features_max,s_res_vect,s_vect)
-#   #(a,b,x0,y0,v0,phi,sx,sy,sv,dvx,dvy)
-#   tr=np.array([value_max,value_max,s_xmax,s_ymax,s_zmax,1,s_xmax,s_ymax,s_zmax,s_zmax/s_xmax,s_zmax/s_ymax])
-#   return (args,tr)
+def standarize((features,values,w,value_max,feature_max,res_vect,s_vect)):
+   s_features=np.empty_like(features)
+   s_xmax=np.abs(features[0]).max()
+   s_ymax=np.abs(features[1]).max()
+   s_zmax=np.abs(features[2]).max()
+   s_features[0]=features[0]/s_xmax
+   s_features[1]=features[1]/s_ymax
+   s_features[2]=features[2]/s_zmax
+   s_features_max=np.empty_like(feature_max)
+   s_features_max[0]=feature_max[0]/s_xmax
+   s_features_max[1]=feature_max[1]/s_ymax
+   s_features_max[2]=feature_max[2]/s_zmax
+   s_values=values/value_max
+   s_res_vect=np.empty_like(res_vect)
+   s_res_vect[0]=res_vect[0]/s_xmax
+   s_res_vect[1]=res_vect[1]/s_ymax
+   s_res_vect[2]=res_vect[2]/s_zmax
+   args=(s_features,s_values,w,1,s_features_max,s_res_vect,s_vect)
+   #(a,b,x0,y0,v0,phi,sx,sy,sv,dvx,dvy)
+   tr=np.array([value_max,value_max,s_xmax,s_ymax,s_zmax,1,s_xmax,s_ymax,s_zmax,s_zmax/s_xmax,s_zmax/s_ymax])
+   return (args,tr)
 
 def next_clump(cube,syn,params):
    # Non-blocking plot 
@@ -311,7 +311,7 @@ def next_clump(cube,syn,params):
    chi2_args=(features,values,w,value_max,feature_max,res_vect,s_vect)
    
 
-   #print "grad error", check_grad(chi2,jac_chi2,guess,features,values,w,value_max,feature_max,res_vect,s_vect)
+   print "grad error", check_grad(chi2,jac_chi2,guess,features,values,w,value_max,feature_max,res_vect,s_vect)
    #print "PREV= ", chi2_args
    # Standarize everything
    #(std_args,tr_vect)=standarize(chi2_args)
@@ -320,7 +320,7 @@ def next_clump(cube,syn,params):
    #s_guess=guess/tr_vect
    # OPTIMIZE
    #res = minimize(chi2,guess,jac=jac_chi2,method='CG',args=chi2_args)
-   res=fmin_bfgs(chi2, guess,fprime=jac_chi2, args=chi2_args,gtol=1e-10)
+   res=fmin_bfgs(chi2, guess,fprime=jac_chi2, args=chi2_args)
    #res=fmin_bfgs(chi2, guess,args=chi2_args)
    #res = minimize(chi2,guess,jac=jac_chi2,method='BFGS',args=chi2_args,tol=1e-30)
    print
@@ -398,7 +398,7 @@ def next_clump(cube,syn,params):
 def gauss_clumps_params():
    retval=dict()
    retval['threshold']=0.000001
-   retval['weight_deltas']=5
+   retval['weight_deltas']=20
    retval['s0']=1.0
    retval['sc']=1.0
    retval['sa']=1.0
