@@ -164,7 +164,6 @@ def cube_data_unravel(data,idx):
 def cube_data_stack(data):
    return data.sum(axis=0)
 
-
 class Cube:
     """
     A spectral cube.
@@ -203,12 +202,12 @@ class Cube:
            lss=self.data[idx[4]:idx[5]+1,idx[2]:idx[3]+1,idx[0]:idx[1]+1]
         return lss.ravel()
 
-    def stack(self,idx=np.array([])):
+    def stack(self,idx=np.array([]),axis=0):
         if len(idx)!=6:
            lss=self.data
         else:
            lss=self.data[idx[4]:idx[5]+1,idx[2]:idx[3]+1,idx[0]:idx[1]+1]
-        return lss.sum(axis=0)
+        return lss.sum(axis)
 
     def add(self,sc,idx=np.array([])):
         if (len(idx)!=6):
