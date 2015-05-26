@@ -35,6 +35,10 @@ class Cube:
         """ data = numpy 3d array 
             meta = header of fits
         """
+        
+        #minn=np.nanmin(data)
+        data[np.isnan(data)]=0
+        
         self.data=data
         self.meta=meta
         ra_value=float(meta['CRVAL1'])
@@ -57,6 +61,21 @@ class Cube:
         hdu = fits.PrimaryHDU(header=self.meta)
         hdu.data = self.data
         self.hdulist = fits.HDUList([hdu])
+    
+
+    def copy(self):
+        return copy.deepcopy(self)
+
+    def empty_like(self):
+        dat=np.empty_like(self.data)
+        cb=Cube(dat,self.meta)
+        cb.ra_delta=self.ra_delta
+        cb.ra_axis=self.ra_axis
+        cb.dec_delta=self.dec_delta
+        cb.dec_axis=self.dec_axis
+        cb.nu_delta=self.nu_delta
+        cb.nu_axis=self.nu_axis
+        return cb
     
     def ravel(self,idx=np.array([])):
         if len(idx)!=6:
@@ -166,6 +185,12 @@ class Cube:
         x[2]=self.nu_axis[index[0]]
         return (y,x)
 
+    def index_center(self,index):
+        ra=(self.ra_axis[index[0]]+self.ra_axis[index[1]-1])/2.0
+        dec=(self.dec_axis[index[2]]+self.dec_axis[index[3]-1])/2.0
+        nu=(self.nu_axis[index[4]]+self.nu_axis[index[5]-1])/2.0
+        return np.array([ra,dec,nu])
+    
     def compute_window(self,center,window):
         ra_ui=np.argmin(np.abs(self.ra_axis-center[0]-window[0]))+1;
         ra_li=np.argmin(np.abs(self.ra_axis-center[0]+window[0]));

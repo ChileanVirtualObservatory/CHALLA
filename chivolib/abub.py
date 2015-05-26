@@ -1,32 +1,10 @@
 import numpy as np
 from numpy.linalg import *
-#from statistics import Gaussian
 from scipy.cluster.vq import *
-import copy
 import matplotlib.pyplot as plt
-import sys
 from spectral import *
 import matplotlib.cm as cm
-#from sympy import symbols,cos,sin,exp,lambdify,diff
-# Model: a,b,x0,y0,v0,dvx,dvy,sx,sy,sv,phi
-
-
-def to_gauss((a,b,x0,y0,v0,phi,sx,sy,sv,dvx,dvy)):
-   sphi2=np.square(np.sin(phi))
-   cphi2=np.square(np.cos(phi))
-   s2phi=np.sin(2*phi)
-   sx2=np.square(sx)
-   sy2=np.square(sy)
-   sv2=np.square(sv)
-   La=cphi2/sx2 + sphi2/sy2 + np.square(dvx)/sv2
-   Ld=sphi2/sx2 + cphi2/sy2 + np.square(dvy)/sv2
-   Lb=-s2phi/(2*sx2) + s2phi/(2*sy2) + dvx*dvy/sv2
-   Lc=-dvx/sv2
-   Le=-dvy/sv2
-   Lf=1.0/sv2
-   L=np.array([[La,Lb,Lc],[Lb,Ld,Le],[Lc,Le,Lf]])
-   mu=[x0,y0,v0]
-   return [a,b,mu,L]
+import scipy.stats
 
 
 def gauss_eval(features,(a,b,mu,L)):
@@ -40,7 +18,7 @@ def gauss_eval(features,(a,b,mu,L)):
    retval=b + a*v*np.sqrt(det(L)/np.power(2*np.pi,3));
    return retval
 
-
+#TODO: Replace this for erf computation... or beam, or whatever...
 def discrete_gauss(features,(a,b,mu,L)):
    C=np.empty_like(features)
    C[0]=features[0] - mu[0]
@@ -53,202 +31,194 @@ def discrete_gauss(features,(a,b,mu,L)):
    retval=b + a*v;
    return retval
 
-def compute_rms(data):
-   res=data[data < 0]
-   fin=(res*res).sum()/len(res)
-   return np.sqrt(fin)
+# Simple hill-climbing to find the nearby region with more energy
+def improve_energy(a,index,bubble,cube,weight):
+  mods=np.empty((0,6))
+  if index[0] > 0 :
+     mods=np.vstack((mods,[-1,-1,0,0,0,0]))
+  if index[1] < cube.ra_axis.size:
+     mods=np.vstack((mods,[1,1,0,0,0,0]))
+  if index[2] > 0 :
+     mods=np.vstack((mods,[0,0,-1,-1,0,0]))
+  if index[3] < cube.dec_axis.size:
+     mods=np.vstack((mods,[0,0,1,1,0,0]))
+  if index[4] > 0 :
+     mods=np.vstack((mods,[0,0,0,0,-1,-1]))
+  if index[5] < cube.nu_axis.size:
+     mods=np.vstack((mods,[0,0,0,0,1,1]))
+  newidx=np.array([])
+  for m in mods:
+     idx=index+m
+     ap=cube.max_energy(bubble,idx)*weight
+     if ap > a:
+        a=ap
+        newidx=idx
+  if newidx.size != 0 :
+     (a,index)=improve_energy(a,newidx,bubble,cube,weight)
+  return (a,index)
 
-def abub(orig_cube,size):
+# Find where to extract the next bubble
+def next_bubble(cube,window,bubble,weight):
+  (value_max,max_pos) = cube.max()
+  index=np.array(cube.compute_window(max_pos,window))
+  a=cube.max_energy(bubble,index)*weight
+  (a,index)=improve_energy(a,index,bubble,cube,weight)
+  return (a,index)
+
+def plot_init():
    plt.ion()
    plt.clf()
-   cube=copy.deepcopy(orig_cube)
+
+def plot_iter_status(orig,cube,syn,vect,ener,varia,entro):
+   plt.clf()
+   # First
+   plt.subplot(4, 4, 1)
+   plt.xlabel("ra")
+   plt.ylabel("dec")
+   plt.imshow(orig.stack(),aspect='auto',origin='lower')
+   plt.subplot(4, 4, 2)
+   plt.xlabel("ra")
+   plt.ylabel("dec")
+   plt.imshow(cube.stack(),aspect='auto',origin='lower')
+   plt.subplot(4, 4, 3)
+   plt.xlabel("ra")
+   plt.ylabel("dec")
+   plt.imshow(syn.stack(),aspect='auto',origin='lower')
+   plt.subplot(4, 4, 4)
+   plt.xlabel("ra")
+   plt.ylabel("dec")
+   plt.xlim(0,1)
+   plt.ylim(0,1)
+   plt.scatter(vect[:,0],vect[:,1])
+   # Second
+   plt.subplot(4, 4, 5)
+   plt.xlabel("ra")
+   plt.ylabel("nu")
+   plt.imshow(orig.stack(axis=1),aspect='auto',origin='lower')
+   plt.subplot(4, 4, 6)
+   plt.xlabel("ra")
+   plt.ylabel("nu")
+   plt.imshow(cube.stack(axis=1),aspect='auto',origin='lower')
+   plt.subplot(4, 4, 7)
+   plt.xlabel("ra")
+   plt.ylabel("nu")
+   plt.imshow(syn.stack(axis=1),aspect='auto',origin='lower')
+   plt.subplot(4, 4, 8)
+   plt.xlabel("ra")
+   plt.ylabel("nu")
+   plt.xlim(0,1)
+   plt.ylim(0,1)
+   plt.scatter(vect[:,0],vect[:,2])
+   # Third
+   plt.subplot(4, 4, 9)
+   plt.xlabel("nu")
+   plt.ylabel("dec")
+   plt.imshow(orig.stack(axis=2).T,aspect='auto',origin='lower')
+   plt.subplot(4, 4, 10)
+   plt.xlabel("nu")
+   plt.ylabel("dec")
+   plt.imshow(cube.stack(axis=2).T,aspect='auto',origin='lower')
+   plt.subplot(4, 4, 11)
+   plt.xlabel("nu")
+   plt.ylabel("dec")
+   plt.imshow(syn.stack(axis=2).T,aspect='auto',origin='lower')
+   plt.subplot(4, 4, 12)
+   plt.xlabel("nu")
+   plt.ylabel("dec")
+   plt.xlim(0,1)
+   plt.ylim(0,1)
+   plt.scatter(vect[:,2],vect[:,1])
+   plt.subplot(4, 4, 13)
+   plt.xlabel("iter")
+   plt.ylabel("energy")
+   plt.plot(ener)
+   plt.subplot(4, 4, 14)
+   plt.xlabel("iter")
+   plt.ylabel("cum(energy)")
+   plt.plot(ener.cumsum())
+   plt.subplot(4, 4, 15)
+   plt.xlabel("iter")
+   plt.ylabel("variance")
+   plt.plot(varia)
+   plt.subplot(4, 4, 16)
+   plt.xlabel("iter")
+   plt.ylabel("entropy")
+   plt.plot(entro)
+   
+   plt.show()
+   plt.pause(0.001)
+
+
+def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot_every=100):
+   
+   if plot:
+      plot_init()
+   
+   # Standarize 0-1 and make an empty cube:
+   cube=orig.copy()
    std_pars=cube.standarize()
-   syn=copy.deepcopy(cube)
-   syn.data=np.empty_like(cube.data)
-   rcube=copy.deepcopy(cube)
-   rcube.data=np.empty_like(cube.data)
-   D=size*np.array([cube.ra_delta,cube.dec_delta,cube.nu_delta])
-   W=D*2.0
-   # Compile Bubble
-   center=np.zeros(3)
-   center[0]=cube.ra_axis[int(len(cube.ra_axis)/2)]
-   center[1]=cube.dec_axis[int(len(cube.dec_axis)/2)]
-   center[2]=cube.nu_axis[int(len(cube.nu_axis)/2)]
-   res=np.array([1.0,0,center[0],center[1],center[2],0,D[0],D[1],D[2],0,0])
-   bubble=to_gauss(res)
+   syn=cube.empty_like()
+   
+   if verbose:  
+      print "Standarization Report:"
+      print "--> Constants", std_pars
+
+   # Create a generic 0-1 bubble:
+   #   a. Select the middle pixel of the cube
+   mu=np.zeros(3)
+   mu[0]=cube.ra_axis[int(len(cube.ra_axis)/2)]
+   mu[1]=cube.dec_axis[int(len(cube.dec_axis)/2)]
+   mu[2]=cube.nu_axis[int(len(cube.nu_axis)/2)]
+   #   b. define the bubble size and window size
+   resol  = np.array([cube.ra_delta,cube.dec_delta,cube.nu_delta])
+   sigmas = size*resol
+   window = 2.0*sigmas
+   #   c. create the inverse of the covariance matrix (precision matrix)
+   lambd  = np.array([[1.0/np.square(sigmas[0]),0,0],[0,1.0/np.square(sigmas[1]),0],[0,0,1.0/np.square(sigmas[2])]])
+   #   d. select the feature space and proyect the gaussian bubble there
+   (features,index) = cube.feature_space(mu,window) 
+   feat_bubble=discrete_gauss(features,(1,0,mu,lambd))
+   #   e. unravel the features to obtain the bubble in a cube
+   bubble=cube_data_unravel(feat_bubble,index)
+   
+   if verbose:  
+      print "Bubble Construction Report:"
+      print "--> Sigmas", sigmas
+      print "--> Pixels", bubble.shape
+
+   # Create empty vectors for stacking positions and energies
    vect=np.empty((0,3))
    ener=np.empty((0,1))
-   (features,index) = cube.feature_space(center,W) 
-   val_fit=discrete_gauss(features,bubble)
-   fit_cube=cube_data_unravel(val_fit,index)
-   print fit_cube.shape
-   (value_max,feature_max) = cube.max()
+
+   # Create empty vectors for stacking statistics
+   varia=np.empty((0,1))
+   entro=np.empty((0,1))
+   
    i=0
-   mval=cube.data.mean()
-   a=1
-   while a > mval :
-      if i%10==1:
-         print i
-         print 'max', value_max, ' ener',a
-         plt.clf()
-         plt.subplot(3, 2, 1)
-         plt.imshow(cube.stack(),aspect='auto',origin='lower')
-         plt.subplot(3, 2, 3)
-         plt.imshow(cube.stack(axis=1),aspect='auto',origin='lower')
-         plt.subplot(3, 2, 5)
-         plt.imshow(cube.stack(axis=2),aspect='auto',origin='lower')
-         plt.subplot(3, 2, 2)
-         plt.imshow(syn.stack(),aspect='auto',origin='lower')
-         plt.subplot(3, 2, 4)
-         plt.imshow(syn.stack(axis=1),aspect='auto',origin='lower')
-         plt.subplot(3, 2, 6)
-         plt.imshow(syn.stack(axis=2),aspect='auto',origin='lower')
-         plt.show()
-         plt.pause(0.001)
-      i=i+1
-      index=np.array(cube.compute_window(feature_max,W))
-      a=cube.max_energy(fit_cube,index)/2.0
-      improve=True
-      while improve:
-         improve=False
-         if (index[0] != 0 ):
-            iwork=index - [1,1,0,0,0,0]
-            a_alt=cube.max_energy(fit_cube,iwork)/2.0
-            if (a_alt > a):
-               a=a_alt
-               index=iwork
-               improve=True
-         if (index[1] != cube.ra_axis.size ):
-            iwork=index + [1,1,0,0,0,0]
-            a_alt=cube.max_energy(fit_cube,iwork)/2.0
-            if (a_alt > a):
-               a=a_alt
-               index=iwork
-               improve=True
-         if (index[2] != 0 ):
-            iwork=index - [0,0,1,1,0,0]
-            a_alt=cube.max_energy(fit_cube,iwork)/2.0
-            if (a_alt > a):
-               a=a_alt
-               index=iwork
-               improve=True
-         if (index[3] != cube.dec_axis.size ):
-            iwork=index + [0,0,1,1,0,0]
-            a_alt=cube.max_energy(fit_cube,iwork)/2.0
-            if (a_alt > a):
-               a=a_alt
-               index=iwork
-               improve=True
-         if (index[4] != 0 ):
-            iwork=index - [0,0,0,0,1,1]
-            a_alt=cube.max_energy(fit_cube,iwork)/2.0
-            if (a_alt > a):
-               a=a_alt
-               index=iwork
-               improve=True
-         if (index[5] != cube.nu_axis.size ):
-            iwork=index + [0,0,0,0,1,1]
-            a_alt=cube.max_energy(fit_cube,iwork)/2.0
-            if (a_alt > a):
-               a=a_alt
-               index=iwork
-               improve=True
-      cube.add(-a*fit_cube,index)
-      syn.add(a*fit_cube,index)
-      vect=np.vstack((vect,feature_max))
+   if verbose:
+      print "Bubble Extraction Iteration:"
+   while True :
+      # Obtain the next bubble
+      (a,index)=next_bubble(cube,window,bubble,weight)
+      cube.add(-a*bubble,index)
+      syn.add(a*bubble,index)
+      vect=np.vstack((vect,cube.index_center(index)))
       ener=np.vstack((ener,a))
-      (value_max,feature_max) = cube.max()
-   print "Bubbles =",i
-   L=bubble[3]
-   #print L
-   Sig=inv(L)
-   kmax=50
-   error=np.empty(kmax)
-   for k in range(kmax):
-      print "k",k+1
-      (codebook,dist)=kmeans(vect,k+1)
-      (clus,ddis)=vq(vect,codebook)
-      e1=0
-      e2=0
-      e3=0
-      for i in range(k+1):
-         v=vect[clus==i]
-         e=ener[clus==i]
-         if (v.size==0):
-            continue
-         b=e.sum()
-         for j in range(e.size):
-             e1=e1+e[j]*(e*gauss_eval(v.T,(1,0,v[j],L/2.0))).sum()
-         ccv=np.cov(v.T)
-         LL=inv(ccv+2*Sig)
-         LL2=2*(ccv+Sig)
-         e3=e3+b*b/np.sqrt(det(2*np.pi*LL2))
-         e2=e2+b*(e*gauss_eval(v.T,(1,0,codebook[i],LL))).sum()
-      print e3, " - ",2*e2, " + ", e1
-      error[k]=e1 - 2*e2 + e3
-   k=np.argmin(error)
-   print "Final K=",k+1
-   (codebook,dist)=kmeans(vect,k+1)
-   (clus,ddis)=vq(vect,codebook)
-   (features,index) = cube.feature_space(center,np.array([1,1,1]))
-   print index
-   print features.shape
-   for i in range(k+1):
-         v=vect[clus==i]
-         e=ener[clus==i]
-         if (v.size==0):
-            continue
-         b=e.sum()
-         ccv=np.cov(v.T)
-         LL=inv(ccv+Sig)
-         val_fit=discrete_gauss(features,(b,0,codebook[i],LL))
-         fit_cube=cube_data_unravel(val_fit,index)
-         rcube.add(fit_cube,index)
-   #rcube.unstandarize(std_pars)
-   plt.clf() 
-   zext=[cube.ra_axis[0],cube.ra_axis[-1],cube.dec_axis[0],cube.dec_axis[-1]]
-   yext=[cube.ra_axis[0],cube.ra_axis[-1],cube.nu_axis[0],cube.nu_axis[-1]]
-   xext=[cube.dec_axis[0],cube.dec_axis[-1],cube.nu_axis[0],cube.nu_axis[-1]]
-   plt.subplot(4, 4, 1)
-   plt.imshow(orig_cube.stack(),aspect='auto',origin='lower',extent=zext)
-   plt.subplot(4, 4, 5)
-   plt.imshow(orig_cube.stack(axis=1),aspect='auto',origin='lower',extent=yext)
-   plt.subplot(4, 4, 9)
-   plt.imshow(orig_cube.stack(axis=2),aspect='auto',origin='lower',extent=xext)
-   plt.subplot(4, 4, 4)
-   plt.imshow(rcube.stack(),aspect='auto',origin='lower',extent=zext)
-   plt.subplot(4, 4, 8)
-   plt.imshow(rcube.stack(axis=1),aspect='auto',origin='lower',extent=yext)
-   plt.subplot(4, 4, 12)
-   plt.imshow(rcube.stack(axis=2),aspect='auto',origin='lower',extent=xext)
-   plt.subplot(4, 4, 2)
-   plt.imshow(syn.stack(),aspect='auto',origin='lower',extent=zext)
-   plt.subplot(4, 4, 6)
-   plt.imshow(syn.stack(axis=1),aspect='auto',origin='lower',extent=yext)
-   plt.subplot(4, 4, 10)
-   plt.imshow(syn.stack(axis=2),aspect='auto',origin='lower',extent=xext)
-   plt.subplot(4, 4, 13)
-   plt.plot(error)
-   plt.subplot(4, 4, 3)
-   plt.xlim(zext[0],zext[1])
-   plt.ylim(zext[2],zext[3])
-   colors = iter(cm.rainbow(np.linspace(0, 1, k+1)))
-   for i in range(k+1):
-      v=vect[clus==i]
-      plt.scatter(v[:,0],v[:,1], color=next(colors))
-   plt.subplot(4, 4, 7)
-   plt.xlim(yext[0],yext[1])
-   plt.ylim(yext[2],yext[3])
-   colors = iter(cm.rainbow(np.linspace(0, 1, k+1)))
-   for i in range(k+1):
-      v=vect[clus==i]
-      plt.scatter(v[:,0],v[:,2], color=next(colors))
-   plt.subplot(4, 4, 11)
-   plt.xlim(xext[0],xext[1])
-   plt.ylim(xext[2],xext[3])
-   colors = iter(cm.rainbow(np.linspace(0, 1, k+1)))
-   for i in range(k+1):
-      v=vect[clus==i]
-      plt.scatter(v[:,1],v[:,2], color=next(colors))
-   plt.show()
-   plt.pause(100)
+
+      
+      # Text Reports
+      if verbose and i%report_every==0:
+         # Compute statistics
+         varia=np.vstack((varia,cube.data.std()))
+         entro=np.vstack((entro,scipy.stats.entropy(cube.data.flatten())))
+         print "--> bubbles =",i
+         print "    * next energy =",a
+         print "    * variance =",varia[i/report_every]
+         print "    * entropy =",entro[i/report_every]
+      if plot and i%plot_every==0:
+         plot_iter_status(orig,cube,syn,vect,ener,varia,entro)
+      
+      # End Iteration
+      i=i+1
+
+
