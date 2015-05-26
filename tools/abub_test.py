@@ -1,5 +1,5 @@
 import chivolib.workspace as ws
-import chivolib.bubble as bl
+import chivolib.abub as bl
 import numpy as np
 import timeit
 import cProfile
@@ -25,6 +25,6 @@ if ndd.meta['NAXIS']==4:
    cb=Cube(ndd.data[0],ndd.meta)
 else:
    cb=Cube(ndd.data,ndd.meta)
-theta=bl.bubble_clump(cb,3.0)
+theta=bl.abub(cb,4.0)
 
 

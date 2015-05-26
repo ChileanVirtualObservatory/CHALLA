@@ -58,7 +58,7 @@ def compute_rms(data):
    fin=(res*res).sum()/len(res)
    return np.sqrt(fin)
 
-def bubble_clump(orig_cube,size):
+def abub(orig_cube,size):
    plt.ion()
    plt.clf()
    cube=copy.deepcopy(orig_cube)
@@ -77,20 +77,19 @@ def bubble_clump(orig_cube,size):
    res=np.array([1.0,0,center[0],center[1],center[2],0,D[0],D[1],D[2],0,0])
    bubble=to_gauss(res)
    vect=np.empty((0,3))
+   ener=np.empty((0,1))
    (features,index) = cube.feature_space(center,W) 
    val_fit=discrete_gauss(features,bubble)
    fit_cube=cube_data_unravel(val_fit,index)
-   print fit_cube.max()
-   print fit_cube.min()
    print fit_cube.shape
    (value_max,feature_max) = cube.max()
-   mval=cube.data.mean()
-   a=100*mval
    i=0
-   while value_max > 2.06*mval:
-      if i%100==0:
+   mval=cube.data.mean()
+   a=1
+   while a > mval :
+      if i%10==1:
          print i
-         print value_max, '>', mval
+         print 'max', value_max, ' ener',a
          plt.clf()
          plt.subplot(3, 2, 1)
          plt.imshow(cube.stack(),aspect='auto',origin='lower')
@@ -106,19 +105,64 @@ def bubble_clump(orig_cube,size):
          plt.imshow(syn.stack(axis=2),aspect='auto',origin='lower')
          plt.show()
          plt.pause(0.001)
-         #mval=cube.data.mean()
       i=i+1
-      #print feature_max, value_max
-      index=cube.compute_window(feature_max,W)
+      index=np.array(cube.compute_window(feature_max,W))
+      a=cube.max_energy(fit_cube,index)/2.0
+      improve=True
+      while improve:
+         improve=False
+         if (index[0] != 0 ):
+            iwork=index - [1,1,0,0,0,0]
+            a_alt=cube.max_energy(fit_cube,iwork)/2.0
+            if (a_alt > a):
+               a=a_alt
+               index=iwork
+               improve=True
+         if (index[1] != cube.ra_axis.size ):
+            iwork=index + [1,1,0,0,0,0]
+            a_alt=cube.max_energy(fit_cube,iwork)/2.0
+            if (a_alt > a):
+               a=a_alt
+               index=iwork
+               improve=True
+         if (index[2] != 0 ):
+            iwork=index - [0,0,1,1,0,0]
+            a_alt=cube.max_energy(fit_cube,iwork)/2.0
+            if (a_alt > a):
+               a=a_alt
+               index=iwork
+               improve=True
+         if (index[3] != cube.dec_axis.size ):
+            iwork=index + [0,0,1,1,0,0]
+            a_alt=cube.max_energy(fit_cube,iwork)/2.0
+            if (a_alt > a):
+               a=a_alt
+               index=iwork
+               improve=True
+         if (index[4] != 0 ):
+            iwork=index - [0,0,0,0,1,1]
+            a_alt=cube.max_energy(fit_cube,iwork)/2.0
+            if (a_alt > a):
+               a=a_alt
+               index=iwork
+               improve=True
+         if (index[5] != cube.nu_axis.size ):
+            iwork=index + [0,0,0,0,1,1]
+            a_alt=cube.max_energy(fit_cube,iwork)/2.0
+            if (a_alt > a):
+               a=a_alt
+               index=iwork
+               improve=True
       cube.add(-a*fit_cube,index)
       syn.add(a*fit_cube,index)
       vect=np.vstack((vect,feature_max))
+      ener=np.vstack((ener,a))
       (value_max,feature_max) = cube.max()
    print "Bubbles =",i
    L=bubble[3]
    #print L
    Sig=inv(L)
-   kmax=30
+   kmax=50
    error=np.empty(kmax)
    for k in range(kmax):
       print "k",k+1
@@ -129,17 +173,17 @@ def bubble_clump(orig_cube,size):
       e3=0
       for i in range(k+1):
          v=vect[clus==i]
-         #print "c"+str(i)+" size="+str(v.size/3)
+         e=ener[clus==i]
          if (v.size==0):
             continue
-         b=a*float(v.size/3)
-         for mv in v:
-             e1=e1+gauss_eval(v.T,(a*a,0,mv,L/2.0)).sum()
-         ccv=np.cov(v.T)#/float(v.size/3)
+         b=e.sum()
+         for j in range(e.size):
+             e1=e1+e[j]*(e*gauss_eval(v.T,(1,0,v[j],L/2.0))).sum()
+         ccv=np.cov(v.T)
          LL=inv(ccv+2*Sig)
          LL2=2*(ccv+Sig)
          e3=e3+b*b/np.sqrt(det(2*np.pi*LL2))
-         e2=e2+a*gauss_eval(v.T,(b*a,0,codebook[i],LL)).sum()
+         e2=e2+b*(e*gauss_eval(v.T,(1,0,codebook[i],LL))).sum()
       print e3, " - ",2*e2, " + ", e1
       error[k]=e1 - 2*e2 + e3
    k=np.argmin(error)
@@ -151,12 +195,12 @@ def bubble_clump(orig_cube,size):
    print features.shape
    for i in range(k+1):
          v=vect[clus==i]
+         e=ener[clus==i]
          if (v.size==0):
             continue
-         b=1.0/float(v.size/3)
+         b=e.sum()
          ccv=np.cov(v.T)
          LL=inv(ccv+Sig)
-         W=2*LL
          val_fit=discrete_gauss(features,(b,0,codebook[i],LL))
          fit_cube=cube_data_unravel(val_fit,index)
          rcube.add(fit_cube,index)
