@@ -92,24 +92,29 @@ class Cube:
         return lss.sum(axis)
 
     def max_energy(self,sc,idx):
-        if (len(idx)!=6):
-           self.data=self.data + sc
-        else:
-           si=np.array([0,sc.shape[2],0,sc.shape[1],0,sc.shape[0]])
-           if idx[4] == 0:
-              si[4]=si[5]  - idx[5]
-           if idx[2] == 0:
-              si[2]=si[3]  - idx[3]
-           if idx[0] == 0:
-              si[0]=si[1]  - idx[1]
-           if idx[5] == self.nu_axis.size:
-              si[5] =idx[5] - idx[4] 
-           if idx[3] == self.dec_axis.size:
-              si[3] =idx[3] - idx[2] 
-           if idx[1] == self.ra_axis.size:
-              si[1] =idx[1] - idx[0]
-           max_energy=(self.data[idx[4]:idx[5],idx[2]:idx[3],idx[0]:idx[1]]/sc[si[4]:si[5],si[2]:si[3],si[0]:si[1]]).min()
-           return max_energy
+          target=self.data[idx[4]:idx[5],idx[2]:idx[3],idx[0]:idx[1]]
+          if target.shape != sc.shape:
+            si=np.array([0,sc.shape[2],0,sc.shape[1],0,sc.shape[0]])
+            mm=target.min()
+            datum=mm*np.ones_like(sc)
+            if idx[4] == 0:
+               si[4]=si[5]  - idx[5]
+            if idx[2] == 0:
+               si[2]=si[3]  - idx[3]
+            if idx[0] == 0:
+               si[0]=si[1]  - idx[1]
+            if idx[5] == self.nu_axis.size:
+               si[5] =idx[5] - idx[4] 
+            if idx[3] == self.dec_axis.size:
+               si[3] =idx[3] - idx[2] 
+            if idx[1] == self.ra_axis.size:
+               si[1] =idx[1] - idx[0]
+            datum[si[4]:si[5],si[2]:si[3],si[0]:si[1]]=target
+            #max_energy=(self.data[idx[4]:idx[5],idx[2]:idx[3],idx[0]:idx[1]]/sc[si[4]:si[5],si[2]:si[3],si[0]:si[1]]).min()
+          else:
+            datum=target
+          max_energy=(datum/sc).min()
+          return max_energy
 
 
     def add(self,sc,idx=np.array([])):

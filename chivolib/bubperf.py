@@ -31,58 +31,46 @@ def discrete_gauss(features,(a,b,mu,L)):
    retval=b + a*v;
    return retval
 
-# Simple hill-climbing to find the nearby region with more energy
-def improve_energy(a,index,bubble,cube,weight):
-  mods=np.empty((0,6))
-  sizes=np.array([index[1]-index[0],index[3]-index[2],index[5]-index[4]])
-  if index[0] > 0:
-     if index[1] == cube.ra_axis.size and sizes[0] < bubble.shape[2]:
-        mods=np.vstack((mods,[-1,0,0,0,0,0]))
-     else:
-        mods=np.vstack((mods,[-1,-1,0,0,0,0]))
-  if index[1] < cube.ra_axis.size:
-     if index[0] == 0 and sizes[0] < bubble.shape[2]:
-        mods=np.vstack((mods,[0,1,0,0,0,0]))
-     else:
-        mods=np.vstack((mods,[1,1,0,0,0,0]))
-  if index[2] > 0 :
-     if index[3] == cube.dec_axis.size and sizes[1] < bubble.shape[1]:
-        mods=np.vstack((mods,[0,0,-1,0,0,0]))
-     else:
-        mods=np.vstack((mods,[0,0,-1,-1,0,0]))
-  if index[3] < cube.dec_axis.size:
-     if index[2] == 0 and sizes[1] < bubble.shape[1]:
-        mods=np.vstack((mods,[0,0,0,1,0,0]))
-     else:
-        mods=np.vstack((mods,[0,0,1,1,0,0]))
-  if index[4] > 0 :
-     if index[5] == cube.nu_axis.size and sizes[2] < bubble.shape[0]:
-        mods=np.vstack((mods,[0,0,0,0,-1,0]))
-     else:
-        mods=np.vstack((mods,[0,0,0,0,-1,-1]))
-  if index[5] < cube.nu_axis.size:
-     if index[4] == 0 and sizes[2] < bubble.shape[0]:
-        mods=np.vstack((mods,[0,0,0,0,0,1]))
-     else:
-        mods=np.vstack((mods,[0,0,0,0,1,1]))
-  newidx=np.array([])
-  for m in mods:
-     idx=index+m
-     ap=cube.max_energy(bubble,idx)*weight
-     if ap > a:
-        a=ap
-        newidx=idx
-  if newidx.size != 0 :
-     (a,index)=improve_energy(a,newidx,bubble,cube,weight)
-  return (a,index)
+
+def update_energies(energies,cube,bubble,pos,region=np.array([]),verbose=False):
+  if region.size == 0:
+     # Compute region
+     region=[0]*6
+     region[0]=int(max(0,pos[2]-bubble.shape[2]))
+     region[1]=int(min(cube.ra_axis.size,pos[2]+bubble.shape[2]))
+     region[2]=int(max(0,pos[1]-bubble.shape[1]))
+     region[3]=int(min(cube.dec_axis.size,pos[1]+bubble.shape[1]))
+     region[4]=int(max(0,pos[0]-bubble.shape[0]))
+     region[5]=int(min(cube.nu_axis.size,pos[0]+bubble.shape[0]))
+  for x in range(region[0],region[1]):
+     if verbose:
+        print (x-region[0])*100/(region[1]-region[0]),"%"
+     for y in range(region[2],region[3]):
+        for z in range(region[4],region[5]):
+           pos=np.array([z,y,x])
+           index=index_by_pos(pos,bubble,cube)
+           #if x==0:
+           #   print index
+           #if not verbose:
+           #   print index,cube.max_energy(bubble,index)
+           energies[z,y,x]=cube.max_energy(bubble,index)
+
+def index_by_pos(pos,bubble,cube):
+  index=np.empty(6)
+  index[0]=max(0,pos[2]-bubble.shape[2]/2)
+  index[1]=min(cube.ra_axis.size,pos[2]+bubble.shape[2]/2+1)
+  index[2]=max(0,pos[1]-bubble.shape[1]/2)
+  index[3]=min(cube.dec_axis.size,pos[1]+bubble.shape[1]/2+1)
+  index[4]=max(0,pos[0]-bubble.shape[0]/2)
+  index[5]=min(cube.nu_axis.size,pos[0]+bubble.shape[0]/2+1)
+  return index
 
 # Find where to extract the next bubble
-def next_bubble(cube,window,bubble,weight):
-  (value_max,max_pos) = cube.max()
-  index=np.array(cube.compute_window(max_pos,window))
+def next_bubble(cube,bubble,weight,energies):
+  pos=np.unravel_index(energies.argmax(),energies.shape)
+  index=index_by_pos(pos,bubble,cube)
   a=cube.max_energy(bubble,index)*weight
-  (a,index)=improve_energy(a,index,bubble,cube,weight)
-  return (a,index)
+  return (a,index,pos)
 
 def plot_init():
    plt.ion()
@@ -168,7 +156,7 @@ def plot_iter_status(orig,cube,syn,vect,ener,varia,entro):
    plt.pause(0.001)
 
 
-def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot_every=100):
+def bubble_perfect(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot_every=100):
    
    if plot:
       plot_init()
@@ -177,6 +165,7 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
    cube=orig.copy()
    std_pars=cube.standarize()
    syn=cube.empty_like()
+   eee=cube.empty_like()
    
    if verbose:  
       print "Standarization Report:"
@@ -184,10 +173,14 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
 
    # Create a generic 0-1 bubble:
    #   a. Select the middle pixel of the cube
+   pos=np.zeros(3)
    mu=np.zeros(3)
-   mu[0]=cube.ra_axis[int(len(cube.ra_axis)/2)]
-   mu[1]=cube.dec_axis[int(len(cube.dec_axis)/2)]
-   mu[2]=cube.nu_axis[int(len(cube.nu_axis)/2)]
+   pos[2]=int(len(cube.ra_axis)/2)
+   pos[1]=int(len(cube.dec_axis)/2)
+   pos[0]=int(len(cube.nu_axis)/2) 
+   mu[0]=cube.ra_axis[pos[2]]
+   mu[1]=cube.dec_axis[pos[1]]
+   mu[2]= cube.nu_axis[pos[0]]
    #   b. define the bubble size and window size
    resol  = np.array([cube.ra_delta,cube.dec_delta,cube.nu_delta])
    sigmas = size*resol
@@ -212,15 +205,18 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
    # Create empty vectors for stacking statistics
    varia=np.empty((0,1))
    entro=np.empty((0,1))
-   
+   energies=np.empty_like(cube.data)
+   region=np.array([0,cube.ra_axis.size,0,cube.dec_axis.size,0,cube.nu_axis.size])
+   update_energies(energies,cube,bubble,pos,region,verbose)
    i=0
    if verbose:
       print "Bubble Extraction Iteration:"
    while True :
       # Obtain the next bubble
-      (a,index)=next_bubble(cube,window,bubble,weight)
+      (a,index,pos)=next_bubble(cube,bubble,weight,energies)
       cube.add(-a*bubble,index)
       syn.add(a*bubble,index)
+      update_energies(energies,cube,bubble,pos)
       vect=np.vstack((vect,cube.index_center(index)))
       ener=np.vstack((ener,a))
 
@@ -236,7 +232,8 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
          print "    * variance =",varia[i/report_every]
          print "    * entropy =",entro[i/report_every]
       if plot and i%plot_every==0:
-         plot_iter_status(orig,cube,syn,vect,ener,varia,entro)
+         eee.data=energies
+         plot_iter_status(orig,cube,eee,vect,ener,varia,entro)
       
       # End Iteration
       i=i+1
