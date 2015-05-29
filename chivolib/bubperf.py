@@ -6,6 +6,8 @@ from spectral import *
 import matplotlib.cm as cm
 import scipy.stats
 
+from joblib import Parallel, delayed  
+import multiprocessing
 
 def gauss_eval(features,(a,b,mu,L)):
    C=np.empty_like(features)
@@ -17,6 +19,7 @@ def gauss_eval(features,(a,b,mu,L)):
    v=np.exp(-quad/2.0)
    retval=b + a*v*np.sqrt(det(L)/np.power(2*np.pi,3));
    return retval
+
 
 #TODO: Replace this for erf computation... or beam, or whatever...
 def discrete_gauss(features,(a,b,mu,L)):
@@ -31,8 +34,12 @@ def discrete_gauss(features,(a,b,mu,L)):
    retval=b + a*v;
    return retval
 
+def compute_energy(bubble,cube,pos,energies):
+  index=index_by_pos(pos,bubble,cube)
+  energies[pos[0],pos[1],pos[2]]= cube.max_energy(bubble,index)
 
 def update_energies(energies,cube,bubble,pos,region=np.array([]),verbose=False):
+  num_cores = multiprocessing.cpu_count()
   if region.size == 0:
      # Compute region
      region=[0]*6
@@ -42,27 +49,36 @@ def update_energies(energies,cube,bubble,pos,region=np.array([]),verbose=False):
      region[3]=int(min(cube.dec_axis.size,pos[1]+bubble.shape[1]))
      region[4]=int(max(0,pos[0]-bubble.shape[0]))
      region[5]=int(min(cube.nu_axis.size,pos[0]+bubble.shape[0]))
-  for x in range(region[0],region[1]):
-     if verbose:
-        print (x-region[0])*100/(region[1]-region[0]),"%"
-     for y in range(region[2],region[3]):
-        for z in range(region[4],region[5]):
-           pos=np.array([z,y,x])
-           index=index_by_pos(pos,bubble,cube)
-           #if x==0:
-           #   print index
-           #if not verbose:
-           #   print index,cube.max_energy(bubble,index)
-           energies[z,y,x]=cube.max_energy(bubble,index)
+  XX,YY,ZZ=np.meshgrid(range(region[0],region[1]),range(region[2],region[3]),range(region[4],region[5]))
+  PP=np.array([ZZ.flatten(),YY.flatten(),XX.flatten()]).T
+  i=0
+  ss=PP.shape[0]
+  for p in PP:
+     i=i+1
+     if i%100000==0:
+       print i*100/ss,"%"
+     compute_energy(bubble,cube,p,energies)
+#for x in range(region[0],region[1]):
+#   if verbose:
+#      print (x-region[0])*100/(region[1]-region[0]),"%"
+#   for y in range(region[2],region[3]):
+#      
+#      for z in range(region[4],region[5]):
+#         pos=np.array([z,y,x])
+#if x==0:
+#   print index
+#if not verbose:
+#   print index,cube.max_energy(bubble,index)
+#  Parallel(n_jobs=num_cores)(delayed(compute_energy)(bubble,cube,pos,energies) for pos in PP)
 
 def index_by_pos(pos,bubble,cube):
   index=np.empty(6)
-  index[0]=max(0,pos[2]-bubble.shape[2]/2)
-  index[1]=min(cube.ra_axis.size,pos[2]+bubble.shape[2]/2+1)
-  index[2]=max(0,pos[1]-bubble.shape[1]/2)
-  index[3]=min(cube.dec_axis.size,pos[1]+bubble.shape[1]/2+1)
-  index[4]=max(0,pos[0]-bubble.shape[0]/2)
-  index[5]=min(cube.nu_axis.size,pos[0]+bubble.shape[0]/2+1)
+  index[0]=np.maximum(0,pos[2]-bubble.shape[2]/2)
+  index[1]=np.minimum(cube.ra_axis.size,pos[2]+bubble.shape[2]/2+1)
+  index[2]=np.maximum(0,pos[1]-bubble.shape[1]/2)
+  index[3]=np.minimum(cube.dec_axis.size,pos[1]+bubble.shape[1]/2+1)
+  index[4]=np.maximum(0,pos[0]-bubble.shape[0]/2)
+  index[5]=np.minimum(cube.nu_axis.size,pos[0]+bubble.shape[0]/2+1)
   return index
 
 # Find where to extract the next bubble
@@ -158,6 +174,8 @@ def plot_iter_status(orig,cube,syn,vect,ener,varia,entro):
 
 def bubble_perfect(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot_every=100):
    
+
+   
    if plot:
       plot_init()
    
@@ -232,8 +250,7 @@ def bubble_perfect(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,
          print "    * variance =",varia[i/report_every]
          print "    * entropy =",entro[i/report_every]
       if plot and i%plot_every==0:
-         eee.data=energies
-         plot_iter_status(orig,cube,eee,vect,ener,varia,entro)
+         plot_iter_status(orig,cube,syn,vect,ener,varia,entro)
       
       # End Iteration
       i=i+1

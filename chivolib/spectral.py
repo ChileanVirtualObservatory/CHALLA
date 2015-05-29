@@ -67,7 +67,7 @@ class Cube:
         return copy.deepcopy(self)
 
     def empty_like(self):
-        dat=np.empty_like(self.data)
+        dat=np.zeros_like(self.data)
         cb=Cube(dat,self.meta)
         cb.ra_delta=self.ra_delta
         cb.ra_axis=self.ra_axis

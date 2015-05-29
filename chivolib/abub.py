@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 from spectral import *
 import matplotlib.cm as cm
 import scipy.stats
-
+import scipy.spatial.distance as dist
+import scipy.cluster.hierarchy as hier
 
 def gauss_eval(features,(a,b,mu,L)):
    C=np.empty_like(features)
@@ -159,10 +160,10 @@ def plot_iter_status(orig,cube,syn,vect,ener,varia,entro):
    plt.xlabel("iter")
    plt.ylabel("variance")
    plt.plot(varia)
-   plt.subplot(4, 4, 16)
-   plt.xlabel("iter")
-   plt.ylabel("entropy")
-   plt.plot(entro)
+   #plt.subplot(4, 4, 16)
+   #plt.xlabel("iter")
+   #plt.ylabel("entropy")
+   #plt.plot(entro)
    
    plt.show()
    plt.pause(0.001)
@@ -170,13 +171,15 @@ def plot_iter_status(orig,cube,syn,vect,ener,varia,entro):
 
 def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot_every=100):
    
-   if plot:
-      plot_init()
    
    # Standarize 0-1 and make an empty cube:
    cube=orig.copy()
    std_pars=cube.standarize()
-   syn=cube.empty_like()
+   syn=0
+   entro=0
+   if plot:
+      plot_init()
+      syn=cube.empty_like()
    
    if verbose:  
       print "Standarization Report:"
@@ -211,7 +214,8 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
 
    # Create empty vectors for stacking statistics
    varia=np.empty((0,1))
-   entro=np.empty((0,1))
+   varia=np.vstack((varia,cube.data.std()))
+   #entro=np.empty((0,1))
    
    i=0
    if verbose:
@@ -220,7 +224,8 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
       # Obtain the next bubble
       (a,index)=next_bubble(cube,window,bubble,weight)
       cube.add(-a*bubble,index)
-      syn.add(a*bubble,index)
+      if plot:
+         syn.add(a*bubble,index)
       vect=np.vstack((vect,cube.index_center(index)))
       ener=np.vstack((ener,a))
 
@@ -230,15 +235,65 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
          # Compute statistics
          totener=ener.sum()
          varia=np.vstack((varia,(cube.data/(1.0-totener)).std()))
-         entro=np.vstack((entro,scipy.stats.entropy( (cube.data/(1.0-totener)).flatten())))
+         print "score", (varia[-2] - varia[-1])
+         if varia[-2] - varia[-1] < -1E-10 or i>=5000:
+             break
+         #entro=np.vstack((entro,scipy.stats.entropy( (cube.data/(1.0-totener)).flatten())))
          print "--> bubbles =",i
          print "    * next energy =",a
          print "    * variance =",varia[i/report_every]
-         print "    * entropy =",entro[i/report_every]
+         #print "    * entropy =",entro[i/report_every]
       if plot and i%plot_every==0:
          plot_iter_status(orig,cube,syn,vect,ener,varia,entro)
       
       # End Iteration
       i=i+1
-
+   # Heriarchical Clustering
+   # Compute the condensated eucledian distance matrix
+   M=dist.pdist(vect)
+   # Compute the weighting factors of the distance matrix
+   W=dist.pdist(ener,lambda u,v: u+v)
+   # Perform agglomerative clustering
+   Z=hier.linkage(M*W)
+   #hier.dendrogram(Z)
+   zext=[cube.ra_axis[0],cube.ra_axis[-1],cube.dec_axis[0],cube.dec_axis[-1]]
+   yext=[cube.ra_axis[0],cube.ra_axis[-1],cube.nu_axis[0],cube.nu_axis[-1]]
+   xext=[cube.dec_axis[0],cube.dec_axis[-1],cube.nu_axis[0],cube.nu_axis[-1]]
+   n=1
+   ll=5
+   offset=2
+   if plot:
+      plt.pause(10)
+   plt.clf()
+   for j in range(ll):
+      k=j+offset
+      T=hier.fcluster(Z,k,criterion='maxclust')
+      plt.subplot(ll, 3, n)
+      plt.xlim(zext[0],zext[1])
+      plt.ylim(zext[2],zext[3])
+      colors = iter(cm.rainbow(np.linspace(0, 1, k+1)))
+      for i in range(k+1):
+         v=vect[T==i]
+         print v
+         plt.scatter(v[:,0],v[:,1], color=next(colors))
+      n=n+1
+      plt.subplot(ll, 3, n)
+      plt.xlim(yext[0],yext[1])
+      plt.ylim(yext[2],yext[3])
+      colors = iter(cm.rainbow(np.linspace(0, 1, k+1)))
+      for i in range(k+1):
+         v=vect[T==i]
+         plt.scatter(v[:,0],v[:,2], color=next(colors))
+      n=n+1
+      plt.subplot(ll, 3, n)
+      plt.xlim(xext[0],xext[1])
+      plt.ylim(xext[2],xext[3])
+      colors = iter(cm.rainbow(np.linspace(0, 1, k+1)))
+      for i in range(k+1):
+         v=vect[T==i]
+         plt.scatter(v[:,1],v[:,2], color=next(colors))
+      n=n+1
+   plt.show()
+   plt.pause(500)
+   return (vect,ener)
 
