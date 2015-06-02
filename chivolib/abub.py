@@ -236,7 +236,7 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
          totener=ener.sum()
          varia=np.vstack((varia,(cube.data/(1.0-totener)).std()))
          print "score", (varia[-2] - varia[-1])
-         if varia[-2] - varia[-1] < -1E-10 or i>=5000:
+         if varia[-2] - varia[-1] < -1E-10 or i>=2000:
              break
          #entro=np.vstack((entro,scipy.stats.entropy( (cube.data/(1.0-totener)).flatten())))
          print "--> bubbles =",i
