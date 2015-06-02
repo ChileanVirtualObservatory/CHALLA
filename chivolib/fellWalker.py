@@ -152,7 +152,9 @@ def fellWalker(orig_cube):
             print "top_id",top_id
 
    #refine 1, removing small clumps
-   minSize=get_params['minSize']
+   minSize=get_params()['minSize']
+   available_id=0 #trick to don't split ids
+
    for clumpId,pixels in clump.items():
       if len(pixels)<=minSize:
          #Set pixels as unusable
