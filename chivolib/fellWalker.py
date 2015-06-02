@@ -8,8 +8,8 @@ from spectral import *
 def get_params():
    maxJump=4
    minDip=3
-   minPix=5
-   return {'maxJump':maxJump,'minDip':minDip}
+   minSize=5
+   return {'maxJump':maxJump,'minDip':minDip,'minSize':minSize}
 
 
 def create_caa(data):
@@ -151,5 +151,13 @@ def fellWalker(orig_cube):
                   clump[path_id].append(pos)
             print "top_id",top_id
 
+   #refine 1, removing small clumps
+   minSize=get_params['minSize']
+   for clumpId,pixels in clump.items():
+      if len(pixels)<=minSize:
+         #Set pixels as unusable
+         for pos in pixels:
+            caa[pos]=-1
+         del clump[clumpId]
 
    return caa,clump
