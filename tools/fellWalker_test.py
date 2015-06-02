@@ -23,7 +23,8 @@ if ndd.meta['NAXIS']==4:
    cb=Cube(ndd.data[0],ndd.meta)
 else:
    cb=Cube(ndd.data,ndd.meta)
-caa=fw.fellWalker(cb)
+caa,clump=fw.fellWalker(cb)
+print clump
 #fig = plt.figure()
 #plt.imshow(caa,interpolation='nearest',cmap=plt.cm.ocean,extent=(0.5,np.shape(caa)[0]+0.5,0.5,np#.shape(caa)[1]+0.5))
 #plt.colorbar()
