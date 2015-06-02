@@ -8,6 +8,7 @@ from spectral import *
 def get_params():
    maxJump=4
    minDip=3
+   minPix=5
    return {'maxJump':maxJump,'minDip':minDip}
 
 
@@ -115,6 +116,7 @@ def fellWalker(orig_cube):
    cube=copy.deepcopy(orig_cube)
    data=cube.data
    caa=create_caa(data)
+   clump=dict()
    shape=data.shape
    top_id=0 #top clump id
 
@@ -134,12 +136,20 @@ def fellWalker(orig_cube):
                #Ascent path reach an existing path
                path_id=caa[path[-1]]
                for pos in path:
+                  if pos==path[-1]:
+                     #Already asigned to clump
+                     continue
                   caa[pos]=path_id
+                  clump[path_id].append(pos)
             else:
                #A new ascent path
                top_id+=1
                path_id=top_id
+               clump[path_id]=list()
                for pos in path:
                   caa[pos]=path_id
+                  clump[path_id].append(pos)
             print "top_id",top_id
-   return caa
+
+
+   return caa,clump
