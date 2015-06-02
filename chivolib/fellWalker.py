@@ -7,13 +7,14 @@ from spectral import *
 
 def set_params():
    MaxJump=4
-   MinDip=3*noise
+   MinDip=3
    threshold=1
+   return (MaxJump,MinDip,threshold)
 
 
 def create_caa(data):
    caa=np.zeros_like(data)
-   # Check invalid pixels (below threshold)
+   #Check invalid pixels (below threshold)
    return caa
 
 
@@ -35,16 +36,16 @@ def max_gradient(pos,data,caa):
    for i in range(-1,2):
       for j in range(-1,2):
          for k in range(-1,2):
-            if i==j==k=0:
-               # dont check it again
+            if i==j==k==0:
+               #dont check it again
                continue
-            else if pos[0]+i<0 | pos[1]+j<0 | pos[2]+k<0 | pos[0]+i>=shape[0] | pos[1]+j>=shape[1] | pos[2]+k>=shape[2]:
-               # don't go outside of cube
+            elif pos[0]+i<0 | pos[1]+j<0 | pos[2]+k<0 | pos[0]+i>=shape[0] | pos[1]+j>=shape[1] | pos[2]+k>=shape[2]:
+               #don't go outside of cube
                continue
-            else if caa[i,j,k]==-1:
-               # don't check unusable pixels
+            elif caa[i,j,k]==-1:
+               #don't check unusable pixels
                continue
-            else if data[i,j,k]>max_val:
+            elif data[i,j,k]>max_val:
                max_pos=(i,j,k)
                max_val=data[i,j,k]
    return max_pos
@@ -57,35 +58,44 @@ def verify_peak(pos,data,caa):
    for i in range(-MaxJump,MaxJump+1):
       for j in range(-MaxJump,MaxJump+1):
          for k in range(-MaxJump,MaxJump+1):
-
+            if abs(i)<=1 and abs(j)<=1 and abs(k)<=1:
+               #don't check it again
+               continue
+            elif pos[0]+i<0 | pos[1]+j<0 | pos[2]+k<0 | pos[0]+i>=shape[0] | pos[1]+j>=shape[1] | pos[2]+k>=shape[2]:
+               #don't go outside of cube
+               continue
+            elif caa[i,j,k]==-1:
+               #don't check unusable pixels
+               continue
+            elif data[i,j,k]>max_val:
+               max_pos=(i,j,k)
+               max_val=data[i,j,k]
    return max_pos
 
-def walkup(pos,path,data,caa,flag):
+def walkup(pos,path,data,caa):
    next_pos=max_gradient(pos,data,caa)
 
    if caa[next_pos]>=1:
-      # Another ascent path reached
-      flag=caa[next_pos]
-      return None
-
-   else if next_pos!=pos:
-      # Keep walking up
+      #Another ascent path reached
       path.append(next_pos)
-      walkup(next_pos,path,data,caa)
+      return path
+
+   elif next_pos!=pos:
+      #Keep walking up
+      path.append(next_pos)
+      return walkup(next_pos,path,data,caa)
 
    else:
-      # Local peak reached
-      path.append(next_pos)
+      #Local peak reached
       local_max=next_pos
-      new_max=verify_peak(local_max,data,caa):
+      new_max=verify_peak(local_max,data,caa)
       if local_max==new_max:
-         # Significant peak reached
-         flag+=1
-         return
+         #Significant peak reached
+         path.append(local_max)
+         return path
       else:
-         # Just a noise peak, keep walking up
-         path.append(new_max)
-         walking(new_max,path,data,caa,flag)
+         #Just a noise peak, keep walking up   
+         return walkup(new_max,path,data,caa)
 
 
 def fellWalker(orig_cube):
@@ -93,8 +103,7 @@ def fellWalker(orig_cube):
    data=cube.data
    caa=create_caa(data)
    shape=data.shape
-   top_id=0 # top clump id
-   path=list()
+   top_id=0 #top clump id
 
    for i in range(shape[0]):
       for j in range(shape[1]):
@@ -105,5 +114,17 @@ def fellWalker(orig_cube):
             path=list() # Ascent path pixels positions
             pos=(i,j,k)
             path.append(pos)
-            flag=walkup(pos,path,data,caa)
+            path=walkup(pos,path,data,caa)
+
+            if caa[path[-1]]>0:
+               #Ascent path reach an existing path
+               path_id=caa[path[-1]]
+               for pos in path:
+                  caa[pos]=path_id
+            else:
+               #A new ascent path
+               top_id+=1
+               path_id=top_id
+               for pos in path:
+                  caa[pos]=path_id
    return caa
