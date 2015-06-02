@@ -5,16 +5,25 @@ import sys
 from spectral import *
 
 
-def set_params():
-   MaxJump=4
-   MinDip=3
-   threshold=1
-   return (MaxJump,MinDip,threshold)
+def get_params():
+   maxJump=4
+   minDip=3
+   return {'maxJump':maxJump,'minDip':minDip}
 
 
 def create_caa(data):
    caa=np.zeros_like(data)
    #Check invalid pixels (below threshold)
+   shape=caa.shape
+   rms=compute_rms(data)
+   threshold=3*rms # here for now
+
+   for i in range(shape[0]):
+      for j in range(shape[1]):
+         for k in range(shape[2]):
+            if data[i,j,k]<threshold:
+               caa[i,j,k]=-1
+   print "CAA initialized successfully"
    return caa
 
 
@@ -36,40 +45,45 @@ def max_gradient(pos,data,caa):
    for i in range(-1,2):
       for j in range(-1,2):
          for k in range(-1,2):
+            neigh=(pos[0]+i,pos[1]+j,pos[2]+k) #position of neighbour point
+
             if i==j==k==0:
                #dont check it again
                continue
-            elif pos[0]+i<0 | pos[1]+j<0 | pos[2]+k<0 | pos[0]+i>=shape[0] | pos[1]+j>=shape[1] | pos[2]+k>=shape[2]:
+            elif neigh[0]<0 or neigh[1]<0 or neigh[2]<0 or neigh[0]>=shape[0] or neigh[1]>=shape[1] or neigh[2]>=shape[2]:
                #don't go outside of cube
                continue
-            elif caa[i,j,k]==-1:
+            elif caa[neigh]==-1:
                #don't check unusable pixels
                continue
-            elif data[i,j,k]>max_val:
-               max_pos=(i,j,k)
-               max_val=data[i,j,k]
+            elif data[neigh]>max_val:
+               max_pos=neigh
+               max_val=data[neigh]
    return max_pos
 
 def verify_peak(pos,data,caa):
    max_pos=pos
    max_val=data[pos]
    shape=data.shape
+   maxJump=get_params()['maxJump']
 
-   for i in range(-MaxJump,MaxJump+1):
-      for j in range(-MaxJump,MaxJump+1):
-         for k in range(-MaxJump,MaxJump+1):
+   for i in range(-maxJump,maxJump+1):
+      for j in range(-maxJump,maxJump+1):
+         for k in range(-maxJump,maxJump+1):
+            neigh=(pos[0]+i,pos[1]+j,pos[2]+k) #position of neighbour point
+
             if abs(i)<=1 and abs(j)<=1 and abs(k)<=1:
                #don't check it again
                continue
-            elif pos[0]+i<0 | pos[1]+j<0 | pos[2]+k<0 | pos[0]+i>=shape[0] | pos[1]+j>=shape[1] | pos[2]+k>=shape[2]:
+            elif neigh[0]<0 or neigh[1]<0 or neigh[2]<0 or neigh[0]>=shape[0] or neigh[1]>=shape[1] or neigh[2]>=shape[2]:
                #don't go outside of cube
                continue
-            elif caa[i,j,k]==-1:
+            elif caa[neigh]==-1:
                #don't check unusable pixels
                continue
-            elif data[i,j,k]>max_val:
-               max_pos=(i,j,k)
-               max_val=data[i,j,k]
+            elif data[neigh]>max_val:
+               max_pos=neigh
+               max_val=data[neigh]
    return max_pos
 
 def walkup(pos,path,data,caa):
@@ -91,7 +105,6 @@ def walkup(pos,path,data,caa):
       new_max=verify_peak(local_max,data,caa)
       if local_max==new_max:
          #Significant peak reached
-         path.append(local_max)
          return path
       else:
          #Just a noise peak, keep walking up   
@@ -99,7 +112,7 @@ def walkup(pos,path,data,caa):
 
 
 def fellWalker(orig_cube):
-   cube=cube.deepcopy(orig_cube)
+   cube=copy.deepcopy(orig_cube)
    data=cube.data
    caa=create_caa(data)
    shape=data.shape
@@ -115,6 +128,7 @@ def fellWalker(orig_cube):
             pos=(i,j,k)
             path.append(pos)
             path=walkup(pos,path,data,caa)
+            print "nueva path:",path
 
             if caa[path[-1]]>0:
                #Ascent path reach an existing path
@@ -127,4 +141,5 @@ def fellWalker(orig_cube):
                path_id=top_id
                for pos in path:
                   caa[pos]=path_id
+            print "top_id",top_id
    return caa
