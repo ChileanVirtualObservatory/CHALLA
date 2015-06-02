@@ -1,6 +1,7 @@
 import chivolib.workspace as ws
 import chivolib.fellWalker as fw
 import numpy as np
+import matplotlib.pylab as plt
 import timeit
 from chivolib.spectral import Cube
 
@@ -23,4 +24,8 @@ if ndd.meta['NAXIS']==4:
 else:
    cb=Cube(ndd.data,ndd.meta)
 caa=fw.fellWalker(cb)
-print caa	
+#fig = plt.figure()
+#plt.imshow(caa,interpolation='nearest',cmap=plt.cm.ocean,extent=(0.5,np.shape(caa)[0]+0.5,0.5,np#.shape(caa)[1]+0.5))
+#plt.colorbar()
+#plt.show()
+	
