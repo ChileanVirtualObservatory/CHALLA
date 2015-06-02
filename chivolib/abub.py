@@ -89,7 +89,7 @@ def plot_init():
    plt.ion()
    plt.clf()
 
-def plot_iter_status(orig,cube,syn,vect,ener,varia,entro):
+def plot_iter_status(orig,cube,syn,vect,ener,varia,entro,ssnr):
    plt.clf()
    # First
    plt.subplot(4, 4, 1)
@@ -154,8 +154,10 @@ def plot_iter_status(orig,cube,syn,vect,ener,varia,entro):
    plt.plot(ener)
    plt.subplot(4, 4, 14)
    plt.xlabel("iter")
-   plt.ylabel("cum(energy)")
-   plt.plot(ener.cumsum())
+   plt.ylabel("cumsum")
+   cs=ener.cumsum()
+   plt.plot(cs)
+   plt.plot(ssnr*np.ones(ener.size),'r')
    plt.subplot(4, 4, 15)
    plt.xlabel("iter")
    plt.ylabel("variance")
@@ -170,10 +172,9 @@ def plot_iter_status(orig,cube,syn,vect,ener,varia,entro):
 
 
 def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot_every=100):
-   
-   
    # Standarize 0-1 and make an empty cube:
    cube=orig.copy()
+   ssnr=cube.estimate_ssnr()
    std_pars=cube.standarize()
    syn=0
    entro=0
@@ -184,6 +185,7 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
    if verbose:  
       print "Standarization Report:"
       print "--> Constants", std_pars
+      print "--> SSNR", ssnr
 
    # Create a generic 0-1 bubble:
    #   a. Select the middle pixel of the cube
@@ -218,9 +220,10 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
    #entro=np.empty((0,1))
    
    i=0
+   tot_a=0
    if verbose:
       print "Bubble Extraction Iteration:"
-   while True :
+   while tot_a < ssnr :
       # Obtain the next bubble
       (a,index)=next_bubble(cube,window,bubble,weight)
       cube.add(-a*bubble,index)
@@ -228,23 +231,21 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
          syn.add(a*bubble,index)
       vect=np.vstack((vect,cube.index_center(index)))
       ener=np.vstack((ener,a))
-
+      tot_a+=a
       
       # Text Reports
       if verbose and i%report_every==0:
          # Compute statistics
          totener=ener.sum()
          varia=np.vstack((varia,(cube.data/(1.0-totener)).std()))
-         print "score", (varia[-2] - varia[-1])
-         if varia[-2] - varia[-1] < -1E-10 or i>=2000:
-             break
          #entro=np.vstack((entro,scipy.stats.entropy( (cube.data/(1.0-totener)).flatten())))
          print "--> bubbles =",i
+         print "    * total energy =",tot_a
          print "    * next energy =",a
          print "    * variance =",varia[i/report_every]
          #print "    * entropy =",entro[i/report_every]
       if plot and i%plot_every==0:
-         plot_iter_status(orig,cube,syn,vect,ener,varia,entro)
+         plot_iter_status(orig,cube,syn,vect,ener,varia,entro,ssnr)
       
       # End Iteration
       i=i+1

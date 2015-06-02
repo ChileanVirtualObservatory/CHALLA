@@ -250,6 +250,13 @@ class Cube:
         self.im.set_array(self.data[j, :, :])
         return self.im,
 
+    def estimate_ssnr(self):
+        mneg=np.abs((self.data[self.data < 0]).mean())
+        mpos=(self.data[self.data > mneg]).mean()
+        s=abs(mpos-mneg)
+        ssnr=s/(s+mneg)
+        return ssnr
+
     def animate(self, inte, rep=True):
         """ Simple animation of the cube.
             - inte       : time interval between frames

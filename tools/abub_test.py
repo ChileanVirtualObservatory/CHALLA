@@ -28,7 +28,7 @@ if ndd.meta['NAXIS']==4:
 else:
    cb=Cube(ndd.data,ndd.meta)
 #(vect,ener)=bl.bubble_fit(cb,1.5,0.5,plot=False)
-(vect,ener)=bl.bubble_fit(cb,1.5,0.5)
+(vect,ener)=bl.bubble_fit(cb,1.0,0.5)
 
 
 
