@@ -7,25 +7,25 @@ from astropy.io import fits
 
 # ## Helper constants ###
 #SPEED_OF_LIGHT = 299792458.0
-S_FACTOR = 2.354820045031  # sqrt(8*ln2)
+#S_FACTOR = 2.354820045031  # sqrt(8*ln2)
 #DEG2ARCSEC = 3600.0
 
-def fwhm2sigma(freq,fwhm):
-    """
-    Compute the sigma in Hz given a frequency in Hz and a fwhm in m/s
-    """
-    sigma = (fwhm / S_FACTOR) * (freq / const.c.value)
-    return sigma
+#def fwhm2sigma(freq,fwhm):
+#    """
+#    Compute the sigma in Hz given a frequency in Hz and a fwhm in m/s
+#    """
+#    sigma = (fwhm / S_FACTOR) * (freq / const.c.value)
+#    return sigma
 
-def doppler(freq,rv):
-    freq_new = math.sqrt((1 + rv / const.c.value) / (1 - rv / const.c.value)) * freq
-    return freq_new
+#def doppler(freq,rv):
+#    freq_new = math.sqrt((1 + rv / const.c.value) / (1 - rv / const.c.value)) * freq
+#    return freq_new
 
-def cube_data_unravel(data,idx):
-   return data.reshape((idx[5]-idx[4],idx[3]-idx[2],idx[1]-idx[0]))
+#def cube_data_unravel(data,idx):
+#   return data.reshape((idx[5]-idx[4],idx[3]-idx[2],idx[1]-idx[0]))
 
-def cube_data_stack(data):
-   return data.sum(axis=0)
+#def cube_data_stack(data):
+#   return data.sum(axis=0)
 
 class Cube:
     """
@@ -36,7 +36,6 @@ class Cube:
             meta = header of fits
         """
         
-        #minn=np.nanmin(data)
         data[np.isnan(data)]=0
         
         self.data=data
@@ -141,36 +140,36 @@ class Cube:
            #   print idx,si
            #   raise ValueError
 
-    def standarize(self):
-        y_min=self.data.min()
-        self.data=self.data - y_min
-        y_fact=self.data.sum()
-        self.data=self.data/y_fact
-        ra_min=self.ra_axis[0]
-        self.ra_axis=self.ra_axis - ra_min
-        ra_fact=self.ra_axis[-1]
-        self.ra_axis=self.ra_axis/ra_fact
-        self.ra_delta=self.ra_delta/ra_fact
-        dec_min=self.dec_axis[0]
-        self.dec_axis=self.dec_axis - dec_min
-        dec_fact=self.dec_axis[-1]
-        self.dec_axis=self.dec_axis/dec_fact
-        self.dec_delta=self.dec_delta/dec_fact
-        nu_min=self.nu_axis[0]
-        self.nu_axis=self.nu_axis - nu_min
-        nu_fact=self.nu_axis[-1]
-        self.nu_axis=self.nu_axis/nu_fact
-        self.nu_delta=self.nu_delta/nu_fact
-        return (y_min,y_fact,ra_min,ra_fact,dec_min,dec_fact,nu_min,nu_fact)
+#    def standarize(self):
+#        y_min=self.data.min()
+#        self.data=self.data - y_min
+#        y_fact=self.data.sum()
+#        self.data=self.data/y_fact
+#        ra_min=self.ra_axis[0]
+#        self.ra_axis=self.ra_axis - ra_min
+#        ra_fact=self.ra_axis[-1]
+#        self.ra_axis=self.ra_axis/ra_fact
+#        self.ra_delta=self.ra_delta/ra_fact
+#        dec_min=self.dec_axis[0]
+#        self.dec_axis=self.dec_axis - dec_min
+#        dec_fact=self.dec_axis[-1]
+#        self.dec_axis=self.dec_axis/dec_fact
+#        self.dec_delta=self.dec_delta/dec_fact
+#        nu_min=self.nu_axis[0]
+#        self.nu_axis=self.nu_axis - nu_min
+#        nu_fact=self.nu_axis[-1]
+#        self.nu_axis=self.nu_axis/nu_fact
+#        self.nu_delta=self.nu_delta/nu_fact
+#        return (y_min,y_fact,ra_min,ra_fact,dec_min,dec_fact,nu_min,nu_fact)
 
-    def unstandarize(self,(y_min,y_fact,ra_min,ra_fact,dec_min,dec_fact,nu_min,nu_fact)):
-        self.data=self.data*y_fact + y_min
-        self.ra_axis=self.ra_axis*ra_fact + ra_min
-        self.dec_axis=self.dec_axis*dec_fact + dec_min
-        self.nu_axis=self.nu_axis*nu_fact + nu_fact
-        self.ra_delta=self.ra_delta*ra_fact
-        self.dec_delta=self.dec_delta*dec_fact
-        self.nu_delta=self.nu_delta*nu_fact
+#    def unstandarize(self,(y_min,y_fact,ra_min,ra_fact,dec_min,dec_fact,nu_min,nu_fact#)):
+#        self.data=self.data*y_fact + y_min
+#        self.ra_axis=self.ra_axis*ra_fact + ra_min
+#        self.dec_axis=self.dec_axis*dec_fact + dec_min
+#        self.nu_axis=self.nu_axis*nu_fact + nu_fact
+#        self.ra_delta=self.ra_delta*ra_fact
+#        self.dec_delta=self.dec_delta*dec_fact
+#        self.nu_delta=self.nu_delta*nu_fact
 
     def max(self):
         index=np.unravel_index(self.data.argmax(),self.data.shape)
