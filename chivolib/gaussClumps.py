@@ -1,5 +1,5 @@
 import numpy as np
-#from statistics import Gaussian
+from collections import deque
 from scipy.optimize import fmin_bfgs,check_grad
 import copy
 import matplotlib.pyplot as plt
@@ -16,22 +16,236 @@ class GaussClumps:
       self.par=dict()
       # Spectral Resoluion in pixels (smoothing function)
       self.par['VELORES']=2.0
-      # Beam resoluion in pixels
+      # Beam resoluion in pixels (smoothing function)
       self.par['FWHMBEAM']=2.0
       # The maximum allowed number of failed fits between succesful fits.
       self.par['MAXSKIP']=10
       # Maximum Clumps
-      self.par['MAXCLUMPS']=1000
+      self.par['MAXCLUMPS']=sys.maxint
       # The iterative process ends when "npad" consecutive clumps all had peak
       # values below "peak_thresh" or all had areas below "area_thresh".
       self.par['NPAD']=10
+      # The lower threshold for clump peaks to a user-specified multiple of the RMS noise.
+      self.par['THRESH']=2.0
+      # The lower threshold for clump area to a user-specified number of pixels.
+      self.par['MINPIX']=3
+      # The lowest value (normalised to the RMS noise level) at which
+      # model Gaussians should be evaluated. 
+      self.par['MODELMIN']=0.5
+      # The max allowed fraction of bad pixels in a clump. 
+      self.par['MAXBAD']=0.05
+      # No.of standard deviations at which to reject peaks
+      self.par['NSIGMA']=3.0
+      # But reject peaks only if at least NPEAKS were found 
+      self.par['NPEAKS']=9
    
-   def fit(self,cube,rms=-1.0):
+   def fit(self,cube,rms=-1.0,verbose=False):
+      # Set the RMS, or automatically find an estimate for it
       if rms < 0.0:
-         self.par['RMS']=cube.estimate_rms()
-      else:
-         self.par['RMS']=rms
-     
+         rms=cube.estimate_rms()
+      self.par['RMS']=rms
+      
+      # Unpack used parameters
+      npeaks=self.par['NPEAKS']
+      mlim=self.par['MODELMIN']
+      peak_thresh=self.par['THRESH']
+      area_thresh=self.par['MINPIX']
+      maxclump=self.par['MAXCLUMPS']
+      npad=self.par['NPAD']
+
+      # Copy the supplied cube into a work cube which will hold the
+      # residuals remaining after subtraction of the fitted Gaussians. 
+      self.res=copy.deepcopy(cube)
+
+      # Initialise the number of clumps found so far.
+      iclump = 0
+
+      # Indicate that no peaks have been found below the lower threshold for clump
+      # peak values, or below the lower area threshold. 
+      peaks_below = 0
+      area_below = 0
+ 
+      # Initialise the variables used to keep track of the mean and standard
+      # deviation of the most recent "npeak" fitted peak values. 
+      mean_peak = 0.0;
+      sigma_peak = 0.0; 
+      # The value most recently added to "peaks"
+      new_peak = 0.0;
+      # Sum of the values in "peaks"
+      sum_peak = 0.0
+      # Sum of the squares of the values in "peaks" 
+      sum_peak2 = 0.0
+
+      # Number of pixels contributing to the clump
+      area=0
+
+      # Iterations performed so far 
+      niter = 0
+      iterate = True
+      # No. of failed fits since last good fit 
+      nskip = 0
+      # Sum of the values in all the used clumps so far 
+      sumclumps = 0.0
+      # Sum of the supplied data values 
+      sumdata = np.nan
+      
+      # peaks contains the last npeaks... 
+      peaks=np.zeros(npeaks)
+      
+      # Loop round fitting a gaussian to the largest remaining peak in the
+      # residuals array. */
+      while iterate:
+         # Report the iteration number to the user if required.
+         niter+=1
+         if verbose:
+            print "Iteration:", niter
+         # Find the cube index of the element with the largest value in the residuals cube.
+         # imax: Index of element with largest residual
+         (allbad,imax,sumdata) = self.findMax(sumdata)
+         # imax: Index of element with largest residual
+ 
+         # Finish iterating if all the residuals are bad, or if too many iterations
+         # have been performed since the last succesfully fitted clump. 
+         if allbad:
+            iterate = False;
+            niter-=1
+            if verbose:
+               print "There are no good pixels left to be fitted."
+               continue
+         elif  nskip > maxskip:
+            iterate = False;
+            niter-=1
+            if verbose:
+               print "The previous",maxskip,"fits were unusable."
+               continue
+         # If not, make an initial guess at the Gaussian clump parameters centred on the current peak.
+         guess=self.setInit(imax,niter)
+         
+         # Find the best fitting parameters, starting from the above initial guess.
+         (found,clump,chisq)=self.optimize(imax,guess)
+         # If no fit could be performed, then found = False
+         if found:
+            # Skip this fit if we have an estimate of the standard deviation of the
+            # "npeaks" most recent clump peak values, and the peak value of the clump
+            # just fitted is a long way (more than NSIGMA standard deviations) from the
+            # peak value of the previously fitted clump. Also skip it if the peak
+            # value is less than the "mlim" value.
+            if (peaks.size == 0 or iclump < npeak or np.abs(clump[0] - new_peak) < nsig*sigma_peak ) and clump[0] > mlim]:
+
+               # Record the new peak value for use with the next peak, and update the
+               # standard deviation of the "npeak" most recent peaks. These values are
+               # stored cyclically in the "peaks" array. */
+               if peaks.size > 0:
+                  np.roll(peaks,1)
+                  new_peak = clump[0]
+                  old_peak = peaks[0]
+                  peaks[0]=new_peak
+                  sum_peak += new_peak - old_peak
+                  sum_peak2 += new_peak*new_peak - old_peak*old_peak
+                  if sum_peak2 < 0.0:
+                     sum_peak2 = 0.0
+                  mean_peak = sum_peak/npeaks
+                  sigma_peak = np.sqrt(sum_peak2/npeaks - mean_peak*mean_peak)
+               
+               # Increment the number of peaks found. 
+               iclump+=1
+
+               # Reset the number of failed fits since the last good fit. */
+               nskip = 0;
+
+               # Remove the model fit (excluding the background) from the residuals.
+               # This also creates data values asociated with the clumps
+               # The standard deviation of the new residuals is returned. */
+               (result,area,sumclumps)=self.updateResults(clump,imax,mean_peak,sumclumps) # check check check
+               #cupidGCUpdateArrays( type, res, ipd, el, ndim, dims,
+               #                    x, rms, mlim, imax, peak_thresh, slbnd,
+               #                    &ret, iclump, excols, mean_peak,
+               #                    maxbad, &area, &sumclumps, status );
+
+               # TODO: implement this!
+               # Display the clump parameters on the screen if required. */
+               #cupidGCListClump( iclump, ndim, x, chisq, slbnd, rms, status );
+
+               # If this clump has a peak value which is below the threshold, increment
+               # the count of consecutive clumps with peak value below the threshold.
+               # Otherwise, reset this count to zero.
+               if clump[0] < peak_thresh:
+                  peaks_below+=1
+               else:
+                  peaks_below=0
+
+               # If this clump has an area which is below the threshold, increment
+               # the count of consecutive clumps with area below the threshold.
+               # Otherwise, reset this count to zero. 
+               if area < area_thresh:
+                  area_below+=1
+               else:
+                  area_below=0
+
+               # If the maximum number of clumps have now been found, exit.*/
+               if iclump == maxclump:
+                  iterate = False
+                  if verbose:
+                     print "The specified maximum number of clumps (",maxclump,") have been found."
+
+               # If the integrated data sum in the fitted gaussians exceeds or equals
+               # the integrated data sum in the input, exit. 
+               elif sumclumps >= sumdata:
+                  iterate = False
+                  if verbose:
+                     print "The total data sum of the fitted Gaussians (",sumclumps") has reached the total data sum in the supplied data (",sumdata,")."
+ 
+               # If the count of consecutive peaks below the threshold has reached
+               # "Npad", terminate.
+               elif peaks_below == npad:
+                  iterate = False
+                  if verbose:
+                     print "The previous",npad,"clumps all had peak values below the threshold."
+
+               # If the count of consecutive clumps with area below the threshold has reached
+               # "Npad", terminate.
+               elif area_below == npad:
+                  iterate = False
+                  if verbose:
+                     print "The previous ",npad," clumps all had areas below the threshold."
+               
+            # If the peak value fitted is very different from the previous fitted peak
+            # value, set the residuals array element bad in order to prevent the
+            # algorithm from trying to fit a peak to the same pixel again. 
+            else:
+               res[imax]=np.nan;
+               new_peak = 0.5*(new_peak + clump[0]);
+               nskip++;
+               if verbose:
+                  print "Clump rejected due to aberrant peak value. Ignoring Pixel..."
+
+         # Tell the user if no clump could be fitted around the current peak
+         # pixel value 
+         else:
+            nskip++;
+            if verbose:
+               print "No clump fitted (optimization falied). Ignoring Pixel..."
+            # Set the specified element of the residuals array bad if no fit was
+            # performed. This prevents the any subsequent attempt to fit a Gaussian
+            # to the same peak value.
+            res[imax]=np.nan;
+      if verbose:
+         print "GaussClump finished normally"
+         # TODO: Usable Clumps
+         ## Tell the problems with the clumps. */
+         #if nclump == 0:
+         #   print "No usable clumps found."
+         #if iclump - nclump >= 1:
+         #   print iclump - nclump,"clump(s) rejected because they touch an edge of the data array."
+         ## Tell the user how many iterations have been performed (i.e. how many
+         ## attempts there have been to fit a Gaussian peak
+         #if niter == 1:
+         #   print "No fit attempted."
+         #else:
+         #   print "Fits attempted for ",iclump," candidate clumps (",niter-iclump," failed)."
+      return result
+
+       
 
 def chi2(model,features,values,w,value_max,feature_max,res_vect,s_vect):
    sys.stdout.write('.')
