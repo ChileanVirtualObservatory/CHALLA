@@ -89,7 +89,7 @@ def plot_init():
    plt.ion()
    plt.clf()
 
-def plot_iter_status(orig,cube,syn,vect,ener,varia,entro,ssnr):
+def plot_iter_status(orig,cube,syn,vect,ener,varia,snr):
    plt.clf()
    # First
    plt.subplot(4, 4, 1)
@@ -157,15 +157,15 @@ def plot_iter_status(orig,cube,syn,vect,ener,varia,entro,ssnr):
    plt.ylabel("cumsum")
    cs=ener.cumsum()
    plt.plot(cs)
-   plt.plot(ssnr*np.ones(ener.size),'r')
+   #plt.plot(ssnr*np.ones(ener.size),'r')
    plt.subplot(4, 4, 15)
    plt.xlabel("iter")
    plt.ylabel("variance")
    plt.plot(varia)
-   #plt.subplot(4, 4, 16)
-   #plt.xlabel("iter")
-   #plt.ylabel("entropy")
-   #plt.plot(entro)
+   plt.subplot(4, 4, 16)
+   plt.xlabel("iter")
+   plt.ylabel("SNR")
+   plt.plot(snr)
    
    plt.show()
    plt.pause(0.001)
@@ -174,10 +174,9 @@ def plot_iter_status(orig,cube,syn,vect,ener,varia,entro,ssnr):
 def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot_every=100):
    # Standarize 0-1 and make an empty cube:
    cube=orig.copy()
-   ssnr=cube.estimate_ssnr()
    std_pars=cube.standarize()
    syn=0
-   entro=0
+   snr=0
    if plot:
       plot_init()
       syn=cube.empty_like()
@@ -185,7 +184,6 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
    if verbose:  
       print "Standarization Report:"
       print "--> Constants", std_pars
-      print "--> SSNR", ssnr
 
    # Create a generic 0-1 bubble:
    #   a. Select the middle pixel of the cube
@@ -217,13 +215,13 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
    # Create empty vectors for stacking statistics
    varia=np.empty((0,1))
    varia=np.vstack((varia,cube.data.std()))
-   #entro=np.empty((0,1))
+   snr=np.empty((0,1))
    
    i=0
    tot_a=0
    if verbose:
       print "Bubble Extraction Iteration:"
-   while tot_a < ssnr :
+   while True:
       # Obtain the next bubble
       (a,index)=next_bubble(cube,window,bubble,weight)
       cube.add(-a*bubble,index)
@@ -232,20 +230,22 @@ def bubble_fit(orig,size,weight=0.5,verbose=True,plot=True,report_every=100,plot
       vect=np.vstack((vect,cube.index_center(index)))
       ener=np.vstack((ener,a))
       tot_a+=a
+      varia=np.vstack((varia,cube.data.std()))
+      snr=np.vstack((snr,cube.snr()))
       
       # Text Reports
       if verbose and i%report_every==0:
          # Compute statistics
          totener=ener.sum()
-         varia=np.vstack((varia,(cube.data/(1.0-totener)).std()))
-         #entro=np.vstack((entro,scipy.stats.entropy( (cube.data/(1.0-totener)).flatten())))
          print "--> bubbles =",i
          print "    * total energy =",tot_a
          print "    * next energy =",a
-         print "    * variance =",varia[i/report_every]
-         #print "    * entropy =",entro[i/report_every]
+         print "    * variance =",varia[i]
+         print "    * snr =",snr[i]
+         #print "    * variance =",varia[i/report_every]
+         #print "    * snr =",snr[i/report_every]
       if plot and i%plot_every==0:
-         plot_iter_status(orig,cube,syn,vect,ener,varia,entro,ssnr)
+         plot_iter_status(orig,cube,syn,vect,ener,varia,snr)
       
       # End Iteration
       i=i+1
