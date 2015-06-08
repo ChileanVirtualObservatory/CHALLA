@@ -151,9 +151,9 @@ def fellWalker(orig_cube):
                   clump[path_id].append(pos)
             print "top_id",top_id
 
-   #refine 1, removing small clumps
+   ###refine 1, removing small clumps
    minSize=get_params()['minSize']
-   available_id=0 #trick to don't split ids
+   deleted=list() #deleted id's
 
    for clumpId,pixels in clump.items():
       if len(pixels)<=minSize:
@@ -161,5 +161,20 @@ def fellWalker(orig_cube):
          for pos in pixels:
             caa[pos]=-1
          del clump[clumpId]
+         deleted.append(clumpId)
+      elif deleted:
+         #If deleted have any index
+         clump[deleted[0]]=clump.pop(clumpId)
+         del deleted[0]
+         deleted.append(clumpId)
+
+
+
+   ####refine 2, merging clumps
+
+   ####some statistics
+   print len(clump)
+   for clumpId in clump:
+      print clumpId
 
    return caa,clump
