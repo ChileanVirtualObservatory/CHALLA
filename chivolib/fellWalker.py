@@ -178,6 +178,7 @@ def fellWalker(orig_cube):
             print "top_id",top_id
 
    ###refine 1, removing small clumps
+   print "\n Removing small clumps stage"
    minSize=get_params()['minSize']
    deleted=list() #deleted id's
 
@@ -188,6 +189,7 @@ def fellWalker(orig_cube):
             caa[pos]=-1
          del clump[clumpId]
          deleted.append(clumpId)
+         print "removed clump {0}".format(clumpId)
       elif deleted:
          #If deleted have any index
          clump[deleted[0]]=clump.pop(clumpId)
@@ -197,8 +199,9 @@ def fellWalker(orig_cube):
          del deleted[0]
          deleted.append(clumpId)
 
-
+   
    ####refine 2, merging clumps
+   print "\n Merge Stage"
    minDip=get_params()['minDip']
    merge=True
    while merge:
@@ -209,8 +212,7 @@ def fellWalker(orig_cube):
          if neighId!=-1 and dip<=minDip:
             #Merge it!
             merge=True
-            break #dictionaries can't change size while iterating it
-      
+            break #dictionaries can't change size while iterating it 
       if merge:
          #Update caa
          for pos in clump[neighId]:
@@ -218,10 +220,21 @@ def fellWalker(orig_cube):
          #Merge pixels
          clump[clumpId]+=(clump.pop(neighId))
          print "Merged clumps {0} and {1}".format(clumpId,neighId)
-
+   
+   #ordering clumpId's (sequential id's)
+   seqId=1
+   for clumpId in clump:
+      if clumpId!=seqId:
+         clump[seqId]=clump.pop(clumpId)
+         #update caa
+         for pos in clump[seqId]:
+            caa[pos]=seqId
+      seqId+=1
 
    ####some statistics
+   print "\n SOME USEFUL DATA"
    print "Number of clumps:",len(clump)
-
+   for clumpId,pixels in clump.items():
+      print "Clump {0} has {1} pixels".format(clumpId,len(pixels))
 
    return caa,clump
