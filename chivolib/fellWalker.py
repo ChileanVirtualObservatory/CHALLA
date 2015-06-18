@@ -9,6 +9,8 @@ def get_params():
    maxJump=4
    minDip=3
    minSize=5
+   flatSlope=0.1
+   seaLevel=0.
    return {'maxJump':maxJump,'minDip':minDip,'minSize':minSize}
 
 
@@ -113,18 +115,20 @@ def check_merge(clumpId,clump,data,caa):
    return (max_clump-max_border,neighId)
 
 
-def walkup(pos,path,data,caa):
+def walkup(pos,path,pathv,data,caa):
    next_pos=max_gradient(pos,data,caa)
 
    if caa[next_pos]>=1:
       #Another ascent path reached
       path.append(next_pos)
-      return path
+      pathv.append(data[next_pos])
+      return path,pathv
 
    elif next_pos!=pos:
       #Keep walking up
       path.append(next_pos)
-      return walkup(next_pos,path,data,caa)
+      path.append(data[next_pos])
+      return walkup(next_pos,path,pathv,data,caa)
 
    else:
       #Local peak reached
@@ -132,16 +136,55 @@ def walkup(pos,path,data,caa):
       new_max=verify_peak(local_max,data,caa)
       if local_max==new_max:
          #Significant peak reached
-         return path
+         return path,pathv
       else:
          #Just a noise peak, keep walking up   
-         return walkup(new_max,path,data,caa)
+         return walkup(new_max,path,pathv,data,caa)
+
+def verify_flat(path,pathv,caa,flatSlope):
+   avg=0. #average gradient
+   valid=-1 #valid flag, to indicate from what pixel path is valid
+
+   #Calculate average
+   if len(path)<4:
+      avg=sum(pathv)/len(path)
+      if avg>=flatSlope:
+         valid=0
+   else:
+      for i in range(0,len(path)-3):
+         avg=sum(pathv[i:i+4])/4.
+         if avg>=flatSlope:
+            valid=i
+            break
+   #flat part of path and update path
+   if valid==-1:
+      flat=path
+      flatv=pathv
+      path=list()
+   else:
+      flat=path[0:valid]
+      flatv=pathv[0:valid]
+      path=path[valid::]
+      pathv=pathv[valid::]
+
+   return path,pathv,flat,flatv
+
 
 
 def fellWalker(orig_cube):
    cube=copy.deepcopy(orig_cube)
+   syn=copy.copy(orig_cube)
+   syn.data=np.empty_like(cube.data)
    data=cube.data
    caa=create_caa(data)
+
+   #Some constants
+   rms=compute_rms(data)
+   noise=2.*rms
+   flatSlope=0.05
+   seaLevel=noise+2.*rms
+
+
    clump=dict()
    shape=data.shape
    top_id=0 #top clump id
@@ -153,10 +196,27 @@ def fellWalker(orig_cube):
             if caa[i,j,k]!=0:
                continue
             path=list() # Ascent path pixels positions
+            pathv=list() #Ascent path pixel values
             pos=(i,j,k)
             path.append(pos)
-            path=walkup(pos,path,data,caa)
+            pathv.append(data[pos])
+            path,pathv=walkup(pos,path,pathv,data,caa)
+            path,pathv,flat,flatv=verify_flat(path,pathv,caa,flatSlope)
+
+            #if not empty
+            if flat:
+               #average value of flat part
+               avg_flat=sum(flatv)/len(flat)
+               #update caa
+               if avg_flat<seaLevel:
+                  #set pixels as unusable
+                  for pos in flat:
+                     caa[pos]=-1
             print "new path:",path
+
+            #if afther that path is empty, the continue
+            if not path:
+               continue
 
             if caa[path[-1]]>0:
                #Ascent path reach an existing path
