@@ -38,13 +38,16 @@ def compute_rms(data):
 
 def max_gradient(pos,data,caa):
    max_pos=pos
-   max_val=data[pos]
+   max_grad=0.
+   dist=[np.sqrt(1),np.sqrt(2),np.sqrt(3)]
    shape=data.shape
 
    for i in range(-1,2):
       for j in range(-1,2):
          for k in range(-1,2):
             neigh=(pos[0]+i,pos[1]+j,pos[2]+k) #position of neighbour point
+            d=dist[abs(i)+abs(j)+abs(k)-1] #distance to occupy
+            grad=(data[neigh]-data[pos])/d #calculate gradient
 
             if i==j==k==0:
                #dont check it again
@@ -55,9 +58,9 @@ def max_gradient(pos,data,caa):
             elif caa[neigh]==-1:
                #don't check unusable pixels
                continue
-            elif data[neigh]>max_val:
+            elif grad>max_grad:
                max_pos=neigh
-               max_val=data[neigh]
+               max_grad=grad
    return max_pos
 
 def verify_peak(pos,data,caa):
@@ -127,7 +130,7 @@ def walkup(pos,path,pathv,data,caa):
    elif next_pos!=pos:
       #Keep walking up
       path.append(next_pos)
-      path.append(data[next_pos])
+      pathv.append(data[next_pos])
       return walkup(next_pos,path,pathv,data,caa)
 
    else:
@@ -181,7 +184,8 @@ def fellWalker(orig_cube):
    #Some constants
    rms=compute_rms(data)
    noise=2.*rms
-   flatSlope=0.05
+   flatSlope=0.01
+
    seaLevel=noise+2.*rms
 
 
@@ -214,7 +218,7 @@ def fellWalker(orig_cube):
                      caa[pos]=-1
             print "new path:",path
 
-            #if afther that path is empty, the continue
+            #if after that path is empty, the continue
             if not path:
                continue
 
