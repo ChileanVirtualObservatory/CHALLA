@@ -153,7 +153,6 @@ def merge(clump,peaks,cols,caa):
    while merge:
       #Don't iterate again unless some merge occur
       merge=False
-
       for clumpId in clump:
          """
          Check all the clumps that adjoin clump "clumpId", and find the one
@@ -162,16 +161,16 @@ def merge(clump,peaks,cols,caa):
          """
          topcol=0.
          neighId=-1
-         for tmpId in cols:
-            if cols[tmpId]>topcol:
-               topcol=cols[tmpId]
+         for tmpId,col in cols[clumpId].items:
+            if col>topcol:
+               topcol=col
                neighId=tmpId
 
          """
          If the peak value in clumpId is less than "mindip" above the col
          between clumpId and neighId, then we merge the clumps. */
          """
-         if neighId!=-1 and peaks[clumpId]-minDip<topcol:
+         if neighId!=-1 and peaks[clumpId]<topcol+minDip:
             #Merge it!
             merge=True
             break #dictionaries can't change size while iterating it 
@@ -180,13 +179,24 @@ def merge(clump,peaks,cols,caa):
          Tell the neighbours of clumpId that they are now neighbours of neighId
          instead. But only do this if they are not already neighbours of neighId.
          """
+         #merging cols
+         tmpCols=cols.pop(clumpId)
+         tmpCols.update(cols[neighId])
+         cols[neighId]=tmpCols
+         for tmpId in cols:
+            if clumpId in cols[tmpId]:
+               cols[tmpId][neighId]=cols[tmpId].pop(clumpId)
 
+         #delete clumpId from peaks and update new peak of merged clumps
+         tmpPeak=peaks.pop(clumpId)
+         peaks[neighId]=np.max(tmpPeak,peaks[neighId])
 
          #Update caa
-         for pos in clump[neighId]:
-            caa[pos]=clumpId
-         #Merge pixels
-         clump[clumpId]+=(clump.pop(neighId))
+         for pos in clump[clumpId]:
+            caa[clumpId]=neighId
+
+         #Merge pixels in clump dictionary
+         clump[neighId]+=(clump.pop(clumpId))
          print "Merged clumps {0} and {1}".format(clumpId,neighId)
 
    return clump,peaks,cols,caa
