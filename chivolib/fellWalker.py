@@ -152,11 +152,13 @@ def verify_flat(path,pathv,caa,flatSlope):
    if len(path)<4:
       avg=sum(pathv)/len(path)
       if avg>=flatSlope:
+         #valid from 0-pixel
          valid=0
    else:
       for i in range(0,len(path)-3):
          avg=sum(pathv[i:i+4])/4.
          if avg>=flatSlope:
+            #valid from i-pixel
             valid=i
             break
    #flat part of path and update path
@@ -205,20 +207,18 @@ def fellWalker(orig_cube):
             path.append(pos)
             pathv.append(data[pos])
             path,pathv=walkup(pos,path,pathv,data,caa)
-            path,pathv,flat,flatv=verify_flat(path,pathv,caa,flatSlope)
 
-            #if not empty
-            if flat:
-               #average value of flat part
-               avg_flat=sum(flatv)/len(flat)
-               #update caa
-               if avg_flat<seaLevel:
+            #verify flat start, only if path starts with a value below sea level
+            if pathv[0]<=seaLevel:      
+               path,pathv,flat,flatv=verify_flat(path,pathv,caa,flatSlope)
+               #if not empty
+               if flat:
                   #set pixels as unusable
                   for pos in flat:
                      caa[pos]=-1
             print "new path:",path
 
-            #if after that path is empty, the continue
+            #if after that, path is empty then continue
             if not path:
                continue
 
