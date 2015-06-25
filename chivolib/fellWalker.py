@@ -144,7 +144,7 @@ def clump_structs(clump,data,caa):
             if isBorder: break
    return peaks,cols
 
-def merge(clump,peaks,cols,caa):
+def merge(clump,peaks,cols,caa,minDip):
    """
    Enter an iterative loop in which we join clumps that have a small dip
    between them. Quit when an interation fails to merge any more clumps.
@@ -161,7 +161,7 @@ def merge(clump,peaks,cols,caa):
          """
          topcol=0.
          neighId=-1
-         for tmpId,col in cols[clumpId].items:
+         for tmpId,col in cols[clumpId].items():
             if col>topcol:
                topcol=col
                neighId=tmpId
@@ -181,6 +181,9 @@ def merge(clump,peaks,cols,caa):
          """
          #merging cols
          tmpCols=cols.pop(clumpId)
+         print clumpId
+         print neighId
+         del tmpCols[neighId]
          tmpCols.update(cols[neighId])
          cols[neighId]=tmpCols
          for tmpId in cols:
@@ -438,31 +441,9 @@ def fellWalker(orig_cube):
    Create a dictionary structure describing all the clumps boundaries in the
    supplied caa array.
    """
-   clumpStruct=fwPixelStructs(clump,data,caa)
+   peaks,cols=clump_structs(clump,data,caa)
+   clump,peaks,cols,caa=merge(clump,peaks,cols,caa,minDip)
 
-
-   """
-   Enter an iterative loop in which we join clumps that have a small dip
-   between them. Quit when an interation fails to merge any more clumps.
-   """
-   merge=True
-   while merge:
-      #Don't iterate again unless some merge occur
-      merge=False
-      for clumpId in clump:
-         dip,neighId=check_merge(clumpId,clump,data,caa)
-         if neighId!=-1 and dip<=minDip:
-            #Merge it!
-            merge=True
-            break #dictionaries can't change size while iterating it 
-      if merge:
-         #Update caa
-         for pos in clump[neighId]:
-            caa[pos]=clumpId
-         #Merge pixels
-         clump[clumpId]+=(clump.pop(neighId))
-         print "Merged clumps {0} and {1}".format(clumpId,neighId)
-   
    #ordering clumpId's (sequential id's)
    seqId=1
    for clumpId in clump:
