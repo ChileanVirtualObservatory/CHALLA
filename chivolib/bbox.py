@@ -19,7 +19,10 @@ if __name__=='bbox':
 	###Transform Sympy expressions to Numpy evaluated functions
 	functions=map(lamb,expr)
 
-def bbox(A,k=1):
+def bbox(A,k=1.):
+	###Apply k
+	A=A.astype(np.float)
+	A*=1./k
 	###Applying functions
 	args=A.reshape(1,9)
 	(a,b,c,d,e,f,g,h,i)=tuple(args[0])
