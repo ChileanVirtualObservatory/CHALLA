@@ -1,6 +1,6 @@
 import numpy as np 
 import sympy as sp
-import pickle
+import cPickle
 
 """
 Script to generate a general expression to the bounding box
@@ -35,7 +35,7 @@ obj=(xlim,ylim,zlim)
 
 ###Serializing...
 f=file("bbox.pickle","w")
-pickle.dump(obj,f)
+cPickle.dump(obj,f)
 f.close()
 
 
