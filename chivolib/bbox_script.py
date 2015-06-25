@@ -28,13 +28,10 @@ soly=sp.solve([eq,eqx,eqz],[x,y,z])
 solz=sp.solve([eq,eqx,eqy],[x,y,z])
 
 ###Simplify the bounds 
-x1=sp.simplify(solx[0][0])
-x2=sp.simplify(solx[1][0])
-y1=sp.simplify(soly[0][1])
-y2=sp.simplify(soly[1][1])
-z1=sp.simplify(solz[0][2])
-z2=sp.simplify(solz[1][2])
-obj=(x1,x2,y1,y2,z1,z2)
+xlim=sp.simplify(solx[0][0])
+ylim=sp.simplify(soly[0][1])
+zlim=sp.simplify(solz[0][2])
+obj=(xlim,ylim,zlim)
 
 ###Serializing...
 f=file("bbox.pickle","w")
