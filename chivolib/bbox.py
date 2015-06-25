@@ -8,26 +8,25 @@ of the form (x-u)^T.A.(x-u)=k.
 It returns (xinf,xsup,yinf,ysup,zinf,zsup)
 """
 def lamb(func):
-    return sp.lambdify((a,b,c,d,e,f,g,h,i), func, modules='numpy')
+	a,b,c,d,e,f,g,h,i=sp.symbols("a b c d e f g h i")
+	return sp.lambdify((a,b,c,d,e,f,g,h,i), func, modules='numpy')
 
-def bbox(A,k):
-	###Load bounding functions
-	fl=file("bbox.pickle","o")
+if __name__=='bbox':
+	###Load bounding expressions
+	fl=file("bbox.pickle","r")
 	expr=pickle.load(fl)
 	fl.close()
-
 	###Transform Sympy expressions to Numpy evaluated functions
 	functions=map(lamb,expr)
 
+def bbox(A,k=1):
 	###Applying functions
 	args=A.reshape(1,9)
 	(a,b,c,d,e,f,g,h,i)=tuple(args[0])
 	box=list()
-	for f in functions:
-		box.append(f(a,b,c,d,e,f,g,h,i))
-
-	###Ordering
-	ret=(np.min(box[0],box[1]),np.max(box[0],box[1]),
-		np.min(box[2],box[3]),np.max(box[2],box[3]),
-		np.min(box[4],box[5]),np.max(box[4],box[5]))
+	for j in range(6):
+		box.append(functions[j](a,b,c,d,e,f,g,h,i))
+	ret=(np.abs(box[0]),np.abs(box[2]),np.abs(box[4]))
 	return ret
+
+
