@@ -27,7 +27,7 @@ def bbox(A,k):
 		box.append(f(a,b,c,d,e,f,g,h,i))
 
 	###Ordering
-	ret=np.min(box[0],box[1]),np.max(box[0],box[1]),
+	ret=(np.min(box[0],box[1]),np.max(box[0],box[1]),
 		np.min(box[2],box[3]),np.max(box[2],box[3]),
 		np.min(box[4],box[5]),np.max(box[4],box[5]))
 	return ret
