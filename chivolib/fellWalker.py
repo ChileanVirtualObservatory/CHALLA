@@ -135,10 +135,18 @@ def clump_structs(clump,data,caa):
                      #border clump pixel found!
                      isBorder=True
                      neighId=caa[neigh]
+
+                     #Update for current clump (clumpId)
                      if neighId not in cols[clumpId]:
                         cols[clumpId][neighId]=data[pos]
                      elif data[pos]>cols[clumpId][neighId]:
                         cols[clumpId][neighId]=data[pos]
+
+                     #Update for neighour (neighId)
+                     if clumpId not in cols[neighId]:
+                        cols[neighId][clumpId]=data[neigh]
+                     elif data[neigh]>cols[neighId][clumpId]:
+                        cols[neighId][clumpId]=data[neigh]
                      break
                if isBorder: break
             if isBorder: break
@@ -185,6 +193,7 @@ def merge(clump,peaks,cols,caa,minDip):
          print neighId
          del tmpCols[neighId]
          tmpCols.update(cols[neighId])
+         del tmpCols[clumpId]
          cols[neighId]=tmpCols
          for tmpId in cols:
             if clumpId in cols[tmpId]:
@@ -196,7 +205,7 @@ def merge(clump,peaks,cols,caa,minDip):
 
          #Update caa
          for pos in clump[clumpId]:
-            caa[clumpId]=neighId
+            caa[pos]=neighId
 
          #Merge pixels in clump dictionary
          clump[neighId]+=(clump.pop(clumpId))
@@ -439,7 +448,7 @@ def fellWalker(orig_cube):
 
    """
    Create a dictionary structure describing all the clumps boundaries in the
-   supplied caa array.
+   supplied caa array. Then merge stage is applyed.
    """
    peaks,cols=clump_structs(clump,data,caa)
    clump,peaks,cols,caa=merge(clump,peaks,cols,caa,minDip)
@@ -462,6 +471,7 @@ def fellWalker(orig_cube):
    """
 
    ####some statistics
+   nclump=len(clump)
    print "\n SOME USEFUL DATA"
    print "Number of clumps:",nclump
    for clumpId,pixels in clump.items():
