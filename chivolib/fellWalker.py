@@ -8,9 +8,9 @@ from spectral import *
 def get_params():
    maxJump=4
    minDip=3
-   minSize=5
-   flatSlope=0.1
-   seaLevel=0.
+   minSize=10
+   flatSlope=0.2
+   seaLevel=1.
    return {'maxJump':maxJump,'minDip':minDip,'minSize':minSize,'flatSlope':flatSlope,'seaLevel':seaLevel}
 
 
@@ -331,7 +331,6 @@ def fellWalker(orig_cube):
    rms=compute_rms(data)
    noise=1.*rms
    flatSlope=0.01
-
    seaLevel=2.*rms
 
 
@@ -476,5 +475,29 @@ def fellWalker(orig_cube):
    print "Number of clumps:",nclump
    for clumpId,pixels in clump.items():
       print "Clump {0} has {1} pixels".format(clumpId,len(pixels))
+
+   """
+   Visualization of results
+   """
+   for pixels in clump.values():
+      for pos in pixels:
+         syn.data[pos]=data[pos]
+         cube.data[pos]
+
+   plt.ion()
+   plt.clf()
+
+   #Plot of original cube
+   plt.subplot(2,3,5)
+   plt.imshow(cube.stack())
+   plt.clf()
+
+
+
+   # Plot of syntetic cube
+   plt.subplot(2, 3, 2)
+   plt.imshow(syn.stack())
+   plt.clf()
+
 
    return caa,clump
