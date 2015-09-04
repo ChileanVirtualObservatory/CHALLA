@@ -1,7 +1,8 @@
-import numpy as np
 import copy
-import matplotlib.pyplot as plt
 import sys
+import ca
+import matplotlib.pyplot as plt
+import numpy as np
 from spectral import *
 
 
@@ -326,6 +327,11 @@ def fellWalker(orig_cube):
    pixels from the above "ipa" array. This allocates new memory for the
    cleaned up array.
    """
+   frac = 0.1
+   on = 0
+   off = -1
+   centre = 1
+   caa = ca.remove_isolate(caa, frac, on, off, centre)
 
    #Some constants
    rms=compute_rms(data)
@@ -369,7 +375,7 @@ def fellWalker(orig_cube):
 
             """
             We now assign the clump index found above to all the pixels visited on
-            he route, except for any low gradient section at the start of the route,
+            the route, except for any low gradient section at the start of the route,
             which is set unusable (-1). We ignore walks that were entirely on the
             coastal plain (indicated by a value of -2 for clump_index).
             """
@@ -468,6 +474,9 @@ def fellWalker(orig_cube):
    cube of input pixels centred on the output pixel. Repeat this process
    a number of times as given by configuration parameter CleanIter.
    """
+   cleanIter = 1
+   for i in range(cleanIter): 
+      caa = ca.smooth_boundary(caa,clump)
 
    ####some statistics
    nclump=len(clump)
@@ -483,21 +492,6 @@ def fellWalker(orig_cube):
       for pos in pixels:
          syn.data[pos]=data[pos]
          cube.data[pos]
-
-   plt.ion()
-   plt.clf()
-
-   #Plot of original cube
-   plt.subplot(2,3,5)
-   plt.imshow(cube.stack())
-   plt.clf()
-
-
-
-   # Plot of syntetic cube
-   plt.subplot(2, 3, 2)
-   plt.imshow(syn.stack())
-   plt.clf()
 
 
    return caa,clump
